@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>15.0</VCProjectVersion>
+    <ProjectGuid>{3455B2F6-37BD-4308-B50A-53AF2ED01B00}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>Spleeter</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(ProjectDir)bin\$(PlatformTarget)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)obj\$(PlatformTarget)\$(Configuration)\</IntDir>
+    <IncludePath>$(ProjectDir)third_party\ffmpeg-win64\include;$(ProjectDir)third_party\tensorflow-cpu-x64\include;$(ProjectDir)third_party\getopt;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(ProjectDir)bin\$(PlatformTarget)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)obj\$(PlatformTarget)\$(Configuration)\</IntDir>
+    <IncludePath>$(ProjectDir)third_party\ffmpeg-win64\include;$(ProjectDir)third_party\tensorflow-cpu-x64\include;$(ProjectDir)third_party\getopt;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+    <PostBuildEvent>
+      <Command>xcopy /y /d "$(ProjectDir)third_party\ffmpeg-win64\dll\*.dll" "$(TargetDir)"
+xcopy /y /d "$(ProjectDir)third_party\tensorflow-cpu-x64\dll\*.dll" "$(TargetDir)"
+</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+    <PostBuildEvent>
+      <Command>xcopy /y /d "$(ProjectDir)third_party\ffmpeg-win64\dll\*.dll" "$(TargetDir)"
+xcopy /y /d "$(ProjectDir)third_party\tensorflow-cpu-x64\dll\*.dll" "$(TargetDir)"
+</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="src\AudioFile.c" />
+    <ClCompile Include="src\AudioFileCommon.c" />
+    <ClCompile Include="src\AudioFileReader.c" />
+    <ClCompile Include="src\AudioFileWriter.c" />
+    <ClCompile Include="src\Common.c" />
+    <ClCompile Include="src\Main.c" />
+    <ClCompile Include="src\Memory.c" />
+    <ClCompile Include="src\SpleeterProcessor.c" />
+    <ClCompile Include="third_party\getopt\getopt.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="src\AudioFile.h" />
+    <ClInclude Include="src\AudioFileCommon.h" />
+    <ClInclude Include="src\AudioFileReader.h" />
+    <ClInclude Include="src\AudioFileWriter.h" />
+    <ClInclude Include="src\Common.h" />
+    <ClInclude Include="src\Memory.h" />
+    <ClInclude Include="src\SpleeterProcessor.h" />
+    <ClInclude Include="third_party\getopt\getopt.h" />
+    <ClInclude Include="version.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="third_party\ffmpeg-win64\dll\avcodec-58.dll" />
+    <None Include="third_party\ffmpeg-win64\dll\avdevice-58.dll" />
+    <None Include="third_party\ffmpeg-win64\dll\avfilter-7.dll" />
+    <None Include="third_party\ffmpeg-win64\dll\avformat-58.dll" />
+    <None Include="third_party\ffmpeg-win64\dll\avutil-56.dll" />
+    <None Include="third_party\ffmpeg-win64\dll\swresample-3.dll" />
+    <None Include="third_party\ffmpeg-win64\dll\swscale-5.dll" />
+    <None Include="third_party\ffmpeg-win64\lib\avcodec-58.def" />
+    <None Include="third_party\ffmpeg-win64\lib\avdevice-58.def" />
+    <None Include="third_party\ffmpeg-win64\lib\avfilter-7.def" />
+    <None Include="third_party\ffmpeg-win64\lib\avformat-58.def" />
+    <None Include="third_party\ffmpeg-win64\lib\avutil-56.def" />
+    <None Include="third_party\ffmpeg-win64\lib\swresample-3.def" />
+    <None Include="third_party\ffmpeg-win64\lib\swscale-5.def" />
+    <None Include="third_party\tensorflow-cpu-x64\dll\tensorflow.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="third_party\ffmpeg-win64\lib\avcodec.lib" />
+    <Library Include="third_party\ffmpeg-win64\lib\avdevice.lib" />
+    <Library Include="third_party\ffmpeg-win64\lib\avfilter.lib" />
+    <Library Include="third_party\ffmpeg-win64\lib\avformat.lib" />
+    <Library Include="third_party\ffmpeg-win64\lib\avutil.lib" />
+    <Library Include="third_party\ffmpeg-win64\lib\swresample.lib" />
+    <Library Include="third_party\ffmpeg-win64\lib\swscale.lib" />
+    <Library Include="third_party\tensorflow-cpu-x64\lib\tensorflow.lib" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="resource.rc" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

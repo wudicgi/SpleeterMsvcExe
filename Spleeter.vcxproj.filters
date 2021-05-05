@@ -1,0 +1,165 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{88e9dc73-7fc1-405c-bb3f-0294ad22dd17}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="third_party">
+      <UniqueIdentifier>{8777456c-cd85-4222-999c-a19096a4d032}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="third_party\ffmpeg-win64">
+      <UniqueIdentifier>{55cada5b-8ce7-4c91-b770-4a352c47c3b4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="third_party\tensorflow-cpu-x64">
+      <UniqueIdentifier>{15cb4c87-303b-4663-9784-f2c885e693f9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="third_party\getopt">
+      <UniqueIdentifier>{60ce3129-a11f-4f1e-98a9-424af4a2d894}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="third_party\ffmpeg-win64\dll">
+      <UniqueIdentifier>{c188b611-1668-4d9d-a2c4-9279b677ad5b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="third_party\ffmpeg-win64\lib">
+      <UniqueIdentifier>{b5a6f6d4-d97b-465d-9ac7-53dc18541b28}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="third_party\tensorflow-cpu-x64\dll">
+      <UniqueIdentifier>{e6d2e57e-7874-4140-a960-6eb9cae0e0db}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="third_party\tensorflow-cpu-x64\lib">
+      <UniqueIdentifier>{78df80e9-b66a-46d6-95b3-b0601b0b5d9f}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\AudioFile.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AudioFileCommon.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AudioFileReader.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AudioFileWriter.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Common.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Main.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Memory.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\SpleeterProcessor.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\getopt\getopt.c">
+      <Filter>third_party\getopt</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\AudioFile.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AudioFileCommon.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AudioFileReader.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AudioFileWriter.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Common.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Memory.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\SpleeterProcessor.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\getopt\getopt.h">
+      <Filter>third_party\getopt</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="version.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="third_party\ffmpeg-win64\dll\avcodec-58.dll">
+      <Filter>third_party\ffmpeg-win64\dll</Filter>
+    </None>
+    <None Include="third_party\ffmpeg-win64\dll\avdevice-58.dll">
+      <Filter>third_party\ffmpeg-win64\dll</Filter>
+    </None>
+    <None Include="third_party\ffmpeg-win64\dll\avfilter-7.dll">
+      <Filter>third_party\ffmpeg-win64\dll</Filter>
+    </None>
+    <None Include="third_party\ffmpeg-win64\dll\avformat-58.dll">
+      <Filter>third_party\ffmpeg-win64\dll</Filter>
+    </None>
+    <None Include="third_party\ffmpeg-win64\dll\avutil-56.dll">
+      <Filter>third_party\ffmpeg-win64\dll</Filter>
+    </None>
+    <None Include="third_party\ffmpeg-win64\dll\swresample-3.dll">
+      <Filter>third_party\ffmpeg-win64\dll</Filter>
+    </None>
+    <None Include="third_party\ffmpeg-win64\dll\swscale-5.dll">
+      <Filter>third_party\ffmpeg-win64\dll</Filter>
+    </None>
+    <None Include="third_party\ffmpeg-win64\lib\avcodec-58.def">
+      <Filter>third_party\ffmpeg-win64\lib</Filter>
+    </None>
+    <None Include="third_party\ffmpeg-win64\lib\avdevice-58.def">
+      <Filter>third_party\ffmpeg-win64\lib</Filter>
+    </None>
+    <None Include="third_party\ffmpeg-win64\lib\avfilter-7.def">
+      <Filter>third_party\ffmpeg-win64\lib</Filter>
+    </None>
+    <None Include="third_party\ffmpeg-win64\lib\avformat-58.def">
+      <Filter>third_party\ffmpeg-win64\lib</Filter>
+    </None>
+    <None Include="third_party\ffmpeg-win64\lib\avutil-56.def">
+      <Filter>third_party\ffmpeg-win64\lib</Filter>
+    </None>
+    <None Include="third_party\ffmpeg-win64\lib\swresample-3.def">
+      <Filter>third_party\ffmpeg-win64\lib</Filter>
+    </None>
+    <None Include="third_party\ffmpeg-win64\lib\swscale-5.def">
+      <Filter>third_party\ffmpeg-win64\lib</Filter>
+    </None>
+    <None Include="third_party\tensorflow-cpu-x64\dll\tensorflow.dll">
+      <Filter>third_party\tensorflow-cpu-x64\dll</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="third_party\ffmpeg-win64\lib\avcodec.lib">
+      <Filter>third_party\ffmpeg-win64\lib</Filter>
+    </Library>
+    <Library Include="third_party\ffmpeg-win64\lib\avdevice.lib">
+      <Filter>third_party\ffmpeg-win64\lib</Filter>
+    </Library>
+    <Library Include="third_party\ffmpeg-win64\lib\avfilter.lib">
+      <Filter>third_party\ffmpeg-win64\lib</Filter>
+    </Library>
+    <Library Include="third_party\ffmpeg-win64\lib\avformat.lib">
+      <Filter>third_party\ffmpeg-win64\lib</Filter>
+    </Library>
+    <Library Include="third_party\ffmpeg-win64\lib\avutil.lib">
+      <Filter>third_party\ffmpeg-win64\lib</Filter>
+    </Library>
+    <Library Include="third_party\ffmpeg-win64\lib\swresample.lib">
+      <Filter>third_party\ffmpeg-win64\lib</Filter>
+    </Library>
+    <Library Include="third_party\ffmpeg-win64\lib\swscale.lib">
+      <Filter>third_party\ffmpeg-win64\lib</Filter>
+    </Library>
+    <Library Include="third_party\tensorflow-cpu-x64\lib\tensorflow.lib">
+      <Filter>third_party\tensorflow-cpu-x64\lib</Filter>
+    </Library>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="resource.rc" />
+  </ItemGroup>
+</Project>
