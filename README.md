@@ -1,8 +1,6 @@
 # SpleeterMsvcExe
 
-```
 [![GitHub release](https://img.shields.io/github/release/wudicgi/SpleeterMsvcExe.svg)](https://github.com/wudicgi/SpleeterMsvcExe/releases/latest) [![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/wudicgi/SpleeterMsvcExe/master/LICENSE)
-```
 
 ## 1. Introduction ([中文](#1-简介))
 
