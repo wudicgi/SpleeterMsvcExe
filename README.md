@@ -58,7 +58,7 @@ Examples:
     - Use fine-tuned model, spliting song.mp3 into 5 tracks
 ```
 
-## 4. Thanks
+## 4. Acknowledgements
 
 - Thanks to [Deezer](https://www.deezer.com/) for open-sourced the [Spleeter](https://github.com/deezer/spleeter) project.
 
@@ -122,7 +122,7 @@ spleeter.exe song.mp3
     - 使用最高到 16kHz 的精细模型，将 song.mp3 分离为 5 个音轨
 ```
 
-## 4. 感谢
+## 4. 致谢
 
 - 感谢 [Deezer](https://www.deezer.com/) 开源了 [Spleeter](https://github.com/deezer/spleeter) 项目。
 
