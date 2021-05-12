@@ -4,6 +4,8 @@
 
 ## 1. Introduction ([中文](#1-简介))
 
+![Release file list](release_file_list.png)
+
 SpleeterMsvcExe is a Windows command line program for [Spleeter](https://github.com/deezer/spleeter), which can be used directly.
 
 It is written in pure C language, using ffmpeg to read and write audio files, and using Tensorflow C API to make use of Spleeter models. No need to install Python environment, and it does not contain anything related to Python.
@@ -67,6 +69,8 @@ Examples:
 ---
 
 ## 1. 简介
+
+![Release file list](release_file_list.png)
 
 SpleeterMsvcExe 是 [Spleeter](https://github.com/deezer/spleeter) 的 Windows 命令行程序，可直接运行使用。
 
