@@ -67,7 +67,7 @@ typedef struct {
     size_t              _audioStreamIndex;
 
     /** 从文件读取 packet 时使用 */
-    AVPacket            _tempPacket;
+    AVPacket            *_tempPacket;
 
     /** 解码 packet 时使用的空 frame */
     AVFrame             *_tempFrame;

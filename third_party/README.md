@@ -2,9 +2,9 @@
 
 ## ffmpeg-win64
 
-- DLL files: ffmpeg-4.3-win64-shared-lgpl.zip
-- Lib and header files: ffmpeg-4.3-win64-dev-lgpl.zip
-- Downloaded from https://ffmpeg.zeranoe.com/builds/
+- ffmpeg-n4.4-178-g4b583e5425-win64-lgpl-shared-4.4.zip
+- build time: 2021-10-19 12:21 (UTC)
+- Downloaded from https://github.com/BtbN/FFmpeg-Builds/releases
 
 ## tensorflow-cpu-x64
 

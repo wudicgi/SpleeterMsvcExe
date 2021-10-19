@@ -142,6 +142,7 @@ EXPORTS
     avcodec_default_execute
     avcodec_default_execute2
     avcodec_default_get_buffer2
+    avcodec_default_get_encode_buffer
     avcodec_default_get_format
     avcodec_descriptor_get
     avcodec_descriptor_get_by_name
@@ -196,7 +197,6 @@ EXPORTS
     avpriv_ac3_channel_layout_tab
     avpriv_ac3_parse_header
     avpriv_align_put_bits
-    avpriv_bprint_to_extradata
     avpriv_codec2_mode_bit_rate
     avpriv_codec2_mode_block_align
     avpriv_codec2_mode_frame_size
@@ -230,9 +230,11 @@ EXPORTS
     avpriv_mpeg4audio_get_config2
     avpriv_mpeg4audio_sample_rates
     avpriv_mpegaudio_decode_header
+    avpriv_packet_list_free
+    avpriv_packet_list_get
+    avpriv_packet_list_put
     avpriv_pix_fmt_bps_avi
     avpriv_pix_fmt_bps_mov
-    avpriv_put_string
     avpriv_split_xiph_headers
     avpriv_tak_parse_streaminfo
     avpriv_toupper4

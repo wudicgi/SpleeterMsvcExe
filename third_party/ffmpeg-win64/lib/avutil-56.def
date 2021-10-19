@@ -64,6 +64,7 @@ EXPORTS
     av_buffer_pool_uninit
     av_buffer_realloc
     av_buffer_ref
+    av_buffer_replace
     av_buffer_unref
     av_calloc
     av_camellia_alloc
@@ -160,6 +161,8 @@ EXPORTS
     av_fifo_space
     av_file_map
     av_file_unmap
+    av_film_grain_params_alloc
+    av_film_grain_params_create_side_data
     av_find_best_pix_fmt_of_2
     av_find_info_tag
     av_find_nearest_q_idx
@@ -293,6 +296,7 @@ EXPORTS
     av_image_fill_black
     av_image_fill_linesizes
     av_image_fill_max_pixsteps
+    av_image_fill_plane_sizes
     av_image_fill_pointers
     av_image_get_buffer_size
     av_image_get_linesize
@@ -340,6 +344,7 @@ EXPORTS
     av_murmur3_init_seeded
     av_murmur3_update
     av_nearer_q
+    av_opt_child_class_iterate
     av_opt_child_class_next
     av_opt_child_next
     av_opt_copy
@@ -488,11 +493,14 @@ EXPORTS
     av_thread_message_queue_set_free_func
     av_timecode_adjust_ntsc_framenum2
     av_timecode_check_frame_rate
+    av_timecode_get_smpte
     av_timecode_get_smpte_from_framenum
     av_timecode_init
+    av_timecode_init_from_components
     av_timecode_init_from_string
     av_timecode_make_mpeg_tc_string
     av_timecode_make_smpte_tc_string
+    av_timecode_make_smpte_tc_string2
     av_timecode_make_string
     av_timegm
     av_tree_destroy
@@ -514,6 +522,8 @@ EXPORTS
     av_version_info
     av_video_enc_params_alloc
     av_video_enc_params_create_side_data
+    av_vk_frame_alloc
+    av_vkfmt_from_pixfmt
     av_vlog
     av_write_image_line
     av_write_image_line2

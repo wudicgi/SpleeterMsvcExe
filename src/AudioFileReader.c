@@ -173,9 +173,11 @@ AudioFileReader *AudioFileReader_open(const TCHAR *filename, const AudioSampleTy
     }
 
     // 为输入流创建临时 packet
-    av_init_packet(&obj->_tempPacket);
-    obj->_tempPacket.data = NULL;
-    obj->_tempPacket.size = 0;
+    obj->_tempPacket = av_packet_alloc();
+    if (obj->_tempPacket == NULL) {
+        DEBUG_ERROR("av_packet_alloc() failed\n");
+        goto err;
+    }
 
     // 为 decoder 分配临时 frame
     obj->_tempFrame = av_frame_alloc();
@@ -203,20 +205,20 @@ int AudioFileReader_read(AudioFileReader *obj, void *destBuffer, int destBufferS
     int ret;
 
     // 从输入流中读取下一个 frame 为 packet
-    ret = av_read_frame(obj->_inputFormatContext, &obj->_tempPacket);
+    ret = av_read_frame(obj->_inputFormatContext, obj->_tempPacket);
     if (ret < 0) {
         return -1;
     }
 
     // 如果 packet 不是所找到音频流的，跳过
-    if (obj->_tempPacket.stream_index != obj->_audioStreamIndex) {
+    if (obj->_tempPacket->stream_index != obj->_audioStreamIndex) {
         return 0;
     }
 
     // 解码 packet 为 frame
     int gotFrame = 0;
 #pragma warning(suppress : 4996)    // 忽略 avcodec_decode_audio4() 函数被标记为已废弃的警告
-    ret = avcodec_decode_audio4(obj->_audioDecoderContext, obj->_tempFrame, &gotFrame, &obj->_tempPacket);
+    ret = avcodec_decode_audio4(obj->_audioDecoderContext, obj->_tempFrame, &gotFrame, obj->_tempPacket);
     if (ret < 0) {
         DEBUG_ERROR("avcodec_decode_audio4() failed\n");
         return -1;
@@ -275,7 +277,7 @@ int AudioFileReader_read(AudioFileReader *obj, void *destBuffer, int destBufferS
     }
 
     // 清扫临时 packet 的数据
-    av_packet_unref(&obj->_tempPacket);
+    av_packet_unref(obj->_tempPacket);
 
     return copySampleCountPerChannel;
 }
@@ -294,6 +296,10 @@ void AudioFileReader_close(AudioFileReader **objPtr) {
 
     if (obj->_tempFrame != NULL) {
         av_frame_free(&obj->_tempFrame);
+    }
+
+    if (obj->_tempPacket != NULL) {
+        av_packet_free(&obj->_tempPacket);
     }
 
     if (obj->_resamplerContext != NULL) {
