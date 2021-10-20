@@ -323,7 +323,7 @@ int _tmain(int argc, TCHAR *argv[]) {
         g_debugMode = true;
     }
 
-#if defined(_DEBUG)
+#if defined(_DEBUG) && 0
     g_debugMode = true;
 #endif
 

@@ -211,6 +211,31 @@ int SpleeterProcessor_split(const TCHAR *modelName, AudioDataSource *audioDataSo
 
     Common_updateProgress(STAGE_SPLEETER_PROCESSOR_LOAD_MODEL, 0, 1);
 
+    TCHAR *tfCppMinLogLevelReadback_1 = _tgetenv(_T("TF_CPP_MIN_LOG_LEVEL"));
+    DEBUG_INFO("now TF_CPP_MIN_LOG_LEVEL = %S\n", tfCppMinLogLevelReadback_1);
+
+    /*
+     * TF_CPP_MIN_LOG_LEVEL:
+     * 0: all messages are logged (default behavior)
+     * 1: INFO messages are not printed
+     * 2: INFO and WARNING messages are not printed
+     * 3: INFO, WARNING, and ERROR messages are not printed
+     */
+    const TCHAR *tfCppMinLogLevel;
+    if (g_verboseMode) {
+        tfCppMinLogLevel = _T("0");     // show all messages
+    } else {
+        tfCppMinLogLevel = _T("1");     // show warning and error messages
+    }
+
+    DEBUG_INFO("set TF_CPP_MIN_LOG_LEVEL = %S\n", tfCppMinLogLevel);
+    _tputenv_s(_T("TF_CPP_MIN_LOG_LEVEL"), tfCppMinLogLevel);
+
+    TCHAR *tfCppMinLogLevelReadback_2 = _tgetenv(_T("TF_CPP_MIN_LOG_LEVEL"));
+    DEBUG_INFO("now TF_CPP_MIN_LOG_LEVEL = %S\n", tfCppMinLogLevelReadback_2);
+
+    // Notice: the above log level setting only takes effect in release version of this program
+
     DEBUG_INFO("TensorFlow C library version %s\n", TF_Version());
 
     status = TF_NewStatus();
