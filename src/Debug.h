@@ -22,41 +22,25 @@
  * SOFTWARE.
  */
 
-#ifndef _COMMON_H_
-#define _COMMON_H_
+#ifndef _DEBUG_H_
+#define _DEBUG_H_
 
-#include <stdint.h>
 #include <stdbool.h>
-#include <tchar.h>
-#include "Debug.h"
-#include "Memory.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/*
-In the Windows API (with some exceptions discussed in the following paragraphs), the maximum length for a path is MAX_PATH,
-which is defined as 260 characters. A local path is structured in the following order: drive letter, colon, backslash,
-name components separated by backslashes, and a terminating null character. For example, the maximum path on drive D
-is "D:\some 256-character path string<NUL>" where "<NUL>" represents the invisible terminating null character for
-the current system codepage. (The characters < > are used here for visual clarity and cannot be part of a valid path string.)
+extern bool g_verboseMode;
 
-MAX_PATH 的 260 字节长度包含结尾的 '\0' 字符，因此声明数组时直接使用 MAX_PATH, 判断字符串长度时使用 (MAX_PATH - 1)
-*/
-#define FILE_PATH_MAX_SIZE      MAX_PATH
+extern bool g_debugMode;
 
-typedef enum {
-    STAGE_AUDIO_FILE_READER,
-    STAGE_SPLEETER_PROCESSOR_LOAD_MODEL,
-    STAGE_SPLEETER_PROCESSOR_PROCESS_SEGMENT,
-    STAGE_AUDIO_FILE_WRITER
-} Stage;
+#define DEBUG_INFO(fmt, ...)        debugPrintInfo(fmt, __VA_ARGS__)
 
-void Common_updateProgress(Stage stage, int stageProgress, int stageTotal);
+#define DEBUG_ERROR(fmt, ...)       debugPrintError(fmt, __VA_ARGS__)
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // _COMMON_H_
+#endif // _DEBUG_H_

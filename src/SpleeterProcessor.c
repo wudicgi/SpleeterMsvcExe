@@ -211,7 +211,7 @@ int SpleeterProcessor_split(const TCHAR *modelName, AudioDataSource *audioDataSo
 
     Common_updateProgress(STAGE_SPLEETER_PROCESSOR_LOAD_MODEL, 0, 1);
 
-    DEBUG_PRINTF("TensorFlow C library version %s\n", TF_Version());
+    DEBUG_INFO("TensorFlow C library version %s\n", TF_Version());
 
     status = TF_NewStatus();
 
@@ -265,7 +265,7 @@ int SpleeterProcessor_split(const TCHAR *modelName, AudioDataSource *audioDataSo
         int regionWaveformLength = min((extendLengthAtBegin + regionUseLength + extendLengthAtEnd), (inputSampleCountPerChannel - regionWaveformOffset));
 
 #if defined(_DEBUG) && 0
-        DEBUG_PRINTF("Region: %3d, %3d; %3d, %3d\n",
+        DEBUG_INFO("Region: %3d, %3d; %3d, %3d\n",
                 (regionWaveformOffset / SPLEETER_MODEL_AUDIO_SAMPLE_RATE),
                 (regionWaveformLength / SPLEETER_MODEL_AUDIO_SAMPLE_RATE),
                 (regionUseStart / SPLEETER_MODEL_AUDIO_SAMPLE_RATE),

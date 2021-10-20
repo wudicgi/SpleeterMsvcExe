@@ -88,10 +88,10 @@ AudioFileReader *AudioFileReader_open(const TCHAR *filename, const AudioSampleTy
     double durationInSeconds = (double)((double)obj->_inputFormatContext->duration / (double)AV_TIME_BASE);
     obj->durationInSeconds = durationInSeconds;
 
-#if defined(_DEBUG) && 1
-    av_dump_format(obj->_inputFormatContext, 0, obj->filenameUtf8, false);
-    DEBUG_PRINTF("Duration: %lf seconds\n", obj->durationInSeconds);
-#endif
+    if (g_verboseMode) {
+        av_dump_format(obj->_inputFormatContext, 0, obj->filenameUtf8, false);
+        DEBUG_INFO("Duration: %lf seconds\n", obj->durationInSeconds);
+    }
 
     // 查找第一个音频流
     size_t audioStreamIndex = 0;

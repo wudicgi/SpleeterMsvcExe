@@ -22,41 +22,41 @@
  * SOFTWARE.
  */
 
-#ifndef _COMMON_H_
-#define _COMMON_H_
-
+#define _CRT_SECURE_NO_WARNINGS
+#include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <tchar.h>
+#include <stdarg.h>
+#include <string.h>
 #include "Debug.h"
-#include "Memory.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+bool g_verboseMode = false;
 
-/*
-In the Windows API (with some exceptions discussed in the following paragraphs), the maximum length for a path is MAX_PATH,
-which is defined as 260 characters. A local path is structured in the following order: drive letter, colon, backslash,
-name components separated by backslashes, and a terminating null character. For example, the maximum path on drive D
-is "D:\some 256-character path string<NUL>" where "<NUL>" represents the invisible terminating null character for
-the current system codepage. (The characters < > are used here for visual clarity and cannot be part of a valid path string.)
+bool g_debugMode = false;
 
-MAX_PATH 的 260 字节长度包含结尾的 '\0' 字符，因此声明数组时直接使用 MAX_PATH, 判断字符串长度时使用 (MAX_PATH - 1)
-*/
-#define FILE_PATH_MAX_SIZE      MAX_PATH
+void debugPrintInfo(const char *format, ...) {
+    if (!g_debugMode) {
+        return;
+    }
 
-typedef enum {
-    STAGE_AUDIO_FILE_READER,
-    STAGE_SPLEETER_PROCESSOR_LOAD_MODEL,
-    STAGE_SPLEETER_PROCESSOR_PROCESS_SEGMENT,
-    STAGE_AUDIO_FILE_WRITER
-} Stage;
-
-void Common_updateProgress(Stage stage, int stageProgress, int stageTotal);
-
-#ifdef __cplusplus
+    va_list args;
+    va_start(args, format);
+    fprintf(stdout, "[DEBUG_INFO] ");
+    vfprintf(stdout, format, args);
+    va_end(args);
 }
-#endif
 
-#endif // _COMMON_H_
+void debugPrintError(const char *format, ...) {
+    if (!g_debugMode) {
+        return;
+    }
+
+    va_list args;
+    va_start(args, format);
+    fprintf(stderr, "\nError: ");
+    vfprintf(stderr, format, args);
+    va_end(args);
+
+    // exit(EXIT_FAILURE);
+}

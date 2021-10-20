@@ -43,7 +43,7 @@
 static void _logPacket(const AVFormatContext *formatContext, const AVPacket *packet) {
     AVRational *timeBase = &formatContext->streams[packet->stream_index]->time_base;
 
-    DEBUG_PRINTF("pts:%s pts_time:%s dts:%s dts_time:%s duration:%s duration_time:%s stream_index:%d\n",
+    DEBUG_INFO("pts:%s pts_time:%s dts:%s dts_time:%s duration:%s duration_time:%s stream_index:%d\n",
         av_ts2str(packet->pts), av_ts2timestr(packet->pts, timeBase),
         av_ts2str(packet->dts), av_ts2timestr(packet->dts, timeBase),
         av_ts2str(packet->duration), av_ts2timestr(packet->duration, timeBase),
@@ -458,9 +458,9 @@ AudioFileWriter *AudioFileWriter_open(const TCHAR *filename,
         goto err;
     }
 
-#if defined(_DEBUG) && 1
-    av_dump_format(obj->_outputFormatContext, 0, obj->filenameUtf8, 1);
-#endif
+    if (g_verboseMode) {
+        av_dump_format(obj->_outputFormatContext, 0, obj->filenameUtf8, 1);
+    }
 
     // 打开输出文件
     ret = avio_open(&obj->_outputFormatContext->pb, obj->filenameUtf8, AVIO_FLAG_WRITE);

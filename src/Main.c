@@ -140,7 +140,7 @@ static bool _checkOutputFilePath(const TCHAR *outputFilePath, int overwriteFlag)
     if (_taccess(outputFilePath, 0) != -1) {
         // 如果未指定 --overwrite 选项
         if (!overwriteFlag) {
-            _ftprintf(stderr, _T("Error: The output file \"%s\" has already existed. Add --overwite option to ignore.\n"), outputFilePath);
+            _ftprintf(stderr, _T("Error: The output file \"%s\" has already existed. Add --overwrite option to ignore.\n"), outputFilePath);
             return false;
         }
 
@@ -216,6 +216,7 @@ int _tmain(int argc, TCHAR *argv[]) {
 
     static int overwriteFlag = 0;
     static int verboseFlag = 0;
+    static int debugFlag = 0;
     static int helpFlag = 0;
     static int versionFlag = 0;
 
@@ -227,6 +228,7 @@ int _tmain(int argc, TCHAR *argv[]) {
             {_T("bitrate"),     ARG_REQ,    0,              _T('b')},
             {_T("overwrite"),   ARG_NONE,   &overwriteFlag, 1},
             {_T("verbose"),     ARG_NONE,   &verboseFlag,   1},
+            {_T("debug"),       ARG_NONE,   &debugFlag,     1},
             {_T("help"),        ARG_NONE,   0,              _T('h')},
             {_T("version"),     ARG_NONE,   0,              _T('v')},
             {ARG_NULL,          ARG_NULL,   ARG_NULL,       ARG_NULL}
@@ -248,6 +250,7 @@ int _tmain(int argc, TCHAR *argv[]) {
                 if (longOptions[longOptionIndex].flag != 0) {
                     // --overwrite
                     // --verbose
+                    // --debug
                     break;
                 }
 
@@ -311,6 +314,18 @@ int _tmain(int argc, TCHAR *argv[]) {
                 break;
         }
     }
+
+    if (verboseFlag) {
+        g_verboseMode = true;
+    }
+
+    if (debugFlag) {
+        g_debugMode = true;
+    }
+
+#if defined(_DEBUG)
+    g_debugMode = true;
+#endif
 
     if (helpFlag || (argc <= 1)) {
         // 显示帮助信息并退出
@@ -397,6 +412,7 @@ int _tmain(int argc, TCHAR *argv[]) {
     _tprintf(_T("\n"));
 
     if (!_checkInputFilePath(inputFilePath)) {
+        // 返回错误时, _checkInputFilePath() 已输出错误信息
         return EXIT_FAILURE;
     }
 
@@ -406,12 +422,14 @@ int _tmain(int argc, TCHAR *argv[]) {
     for (int i = 0; i < modelInfo->outputCount; i++) {
         TCHAR outputFilePath[FILE_PATH_MAX_SIZE] = { _T('\0') };
         if (!_getOutputFilePath(outputFilePath, FILE_PATH_MAX_SIZE, outputBaseFilePath, modelInfo->trackNames[i])) {
+            // 返回错误时, _getOutputFilePath() 已输出错误信息
             return EXIT_FAILURE;
         }
 
         _tprintf(_T("%s\n"), outputFilePath);
 
         if (!_checkOutputFilePath(outputFilePath, overwriteFlag)) {
+            // 返回错误时, _checkOutputFilePath() 已输出错误信息
             return EXIT_FAILURE;
         }
     }
@@ -438,9 +456,11 @@ int _tmain(int argc, TCHAR *argv[]) {
 
     SpleeterProcessorResult *result = NULL;
     if (SpleeterProcessor_split(modelName, audioDataSourceStereo, &result) != 0) {
+        _ftprintf(stderr, _T("Error: Spleeter processor failed. Use --debug to get more information.\n"));
         return EXIT_FAILURE;
     }
     if (result == NULL) {
+        _ftprintf(stderr, _T("Error: Spleeter processor returns no result. Use --debug to get more information.\n"));
         return EXIT_FAILURE;
     }
 
@@ -449,10 +469,12 @@ int _tmain(int argc, TCHAR *argv[]) {
 
         TCHAR outputFilePath[FILE_PATH_MAX_SIZE] = { _T('\0') };
         if (!_getOutputFilePath(outputFilePath, FILE_PATH_MAX_SIZE, outputBaseFilePath, track->trackName)) {
+            // 返回错误时, _getOutputFilePath() 已输出错误信息
             return EXIT_FAILURE;
         }
 
         if (!_checkOutputFilePath(outputFilePath, overwriteFlag)) {
+            // 返回错误时, _checkOutputFilePath() 已输出错误信息
             return EXIT_FAILURE;
         }
 
