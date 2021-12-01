@@ -44,13 +44,15 @@ static void _displayHelp(int argc, TCHAR *argv[]) {
     _tprintf(_T("\n"));
 
     _tprintf(_T("Options:\n"));
-    _tprintf(_T("    -m, --model         Spleeter model name\n"));
-    _tprintf(_T("                        (2stems, 4stems, 5stems-16kHz, ..., default: 2stems)\n"));
+    _tprintf(_T("    -m, --model         Spleeter model name, i.e. the folder name in models folder\n"));
+    _tprintf(_T("                        (2stems, 4stems, 5stems-22khz, ..., default: 2stems)\n"));
     _tprintf(_T("    -o, --output        Output base file name\n"));
     _tprintf(_T("                        (in the format of filename.ext, default: <input_file_path>)\n"));
     _tprintf(_T("    -b, --bitrate       Output file bit rate\n"));
     _tprintf(_T("                        (128k, 192000, 256k, ..., default: 256k)\n"));
     _tprintf(_T("    --overwrite         Overwrite when the target output file exists\n"));
+    _tprintf(_T("    --verbose           Display detailed processing information\n"));
+    _tprintf(_T("    --debug             Display debug information\n"));
     _tprintf(_T("    -h, --help          Display this help and exit\n"));
     _tprintf(_T("    -v, --version       Display program version and exit\n"));
     _tprintf(_T("\n"));
@@ -66,9 +68,10 @@ static void _displayHelp(int argc, TCHAR *argv[]) {
     _tprintf(_T("    - Outputs 4 files: result.vocals.m4a, result.drums.m4a, ...\n"));
     _tprintf(_T("    - Output file format is M4A, using bitrate 192kbps\n"));
     _tprintf(_T("\n"));
-    _tprintf(_T("    %s --model 5stems-16kHz --bitrate 320000 song.mp3\n"), argv[0]);
+    _tprintf(_T("    %s --model 5stems-22khz --bitrate 320000 song.mp3\n"), argv[0]);
     _tprintf(_T("    - Long option example\n"));
-    _tprintf(_T("    - Use fine-tuned model, spliting song.mp3 into 5 tracks\n"));
+    _tprintf(_T("    - Using the model of which upper frequency limit is 22kHz\n"));
+    _tprintf(_T("    - Splits song.mp3 into 5 tracks\n"));
 }
 
 static void _displayVersion(void) {

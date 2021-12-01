@@ -74,7 +74,7 @@ const SpleeterModelInfo *SpleeterProcessor_getModelInfo(const TCHAR *modelName);
 /**
  * 使用 Spleeter 模型对音频进行分离
  *
- * @param   modelName           要使用的模型名称 ("2stems", "4stems", "5stems-16kHz" 等)
+ * @param   modelName           要使用的模型名称 ("2stems", "4stems", "5stems-16khz" 等)
  * @param   audioDataSource     输入音频数据源
  * @param   resultOut           分离结果
  *

@@ -88,6 +88,11 @@ static const char *_getModelPath(const TCHAR *modelName) {
 
     modelPathBuffer[FILE_PATH_MAX_SIZE - 1] = _T('\0');
 
+    if (!PathFileExists(modelPathBuffer)) {
+        DEBUG_ERROR("Target model directory does not exist\n");
+        return NULL;
+    }
+
     const char *modelPath = AudioFileCommon_getUtf8StringFromUnicodeString(modelPathBuffer);
 
     return modelPath;
@@ -97,42 +102,21 @@ static const SpleeterModelInfo _modelInfoList[] = {
     {
         .name           = _T("2stems"),
         .outputCount    = 2,
-        .outputNames    = { "strided_slice_13", "strided_slice_23" },
+        .outputNames    = { "output_vocals", "output_accompaniment" },
         .trackNames     = { _T("vocals"), _T("accompaniment") }
     },
 
     {
         .name           = _T("4stems"),
         .outputCount    = 4,
-        .outputNames    = { "strided_slice_13", "strided_slice_23", "strided_slice_33", "strided_slice_43" },
+        .outputNames    = { "output_vocals", "output_drums", "output_bass", "output_other" },
         .trackNames     = { _T("vocals"), _T("drums"), _T("bass"), _T("other") }
     },
 
     {
         .name           = _T("5stems"),
         .outputCount    = 5,
-        .outputNames    = { "strided_slice_18", "strided_slice_38", "strided_slice_48", "strided_slice_28", "strided_slice_58" },
-        .trackNames     = { _T("vocals"), _T("drums"), _T("bass"), _T("piano"), _T("other") }
-    },
-
-    {
-        .name           = _T("2stems-16kHz"),
-        .outputCount    = 2,
-        .outputNames    = { "strided_slice_13", "strided_slice_23" },
-        .trackNames     = { _T("vocals"), _T("accompaniment") }
-    },
-
-    {
-        .name           = _T("4stems-16kHz"),
-        .outputCount    = 4,
-        .outputNames    = { "strided_slice_13", "strided_slice_23", "strided_slice_33", "strided_slice_43" },
-        .trackNames     = { _T("vocals"), _T("drums"), _T("bass"), _T("other") }
-    },
-
-    {
-        .name           = _T("5stems-16kHz"),
-        .outputCount    = 5,
-        .outputNames    = { "strided_slice_18", "strided_slice_38", "strided_slice_48", "strided_slice_28", "strided_slice_58" },
+        .outputNames    = { "output_vocals", "output_drums", "output_bass", "output_piano", "output_other" },
         .trackNames     = { _T("vocals"), _T("drums"), _T("bass"), _T("piano"), _T("other") }
     }
 };
@@ -141,7 +125,7 @@ const SpleeterModelInfo *SpleeterProcessor_getModelInfo(const TCHAR *modelName) 
     for (int i = 0; i < (sizeof(_modelInfoList) / sizeof(_modelInfoList[0])); i++) {
         const SpleeterModelInfo *modelInfo = &_modelInfoList[i];
 
-        if (_tcscmp(modelInfo->name, modelName) == 0) {
+        if (_tcsstr(modelName, modelInfo->name) != NULL) {
             return modelInfo;
         }
     }
@@ -301,10 +285,11 @@ int SpleeterProcessor_split(const TCHAR *modelName, AudioDataSource *audioDataSo
 
         TF_Output inputs[1] = { 0 };
 
-        inputs[0].oper = TF_GraphOperationByName(graph, "Placeholder");
+        inputs[0].oper = TF_GraphOperationByName(graph, "input_waveform");
         inputs[0].index = 0;
         if (inputs[0].oper == NULL) {
             DEBUG_ERROR("TF_GraphOperationByName() failed\n");
+            fprintf(stderr, "Error: Cannot find input tensor by name \"%s\".\n", "input_waveform");
             goto clean_up;
         }
 
@@ -330,6 +315,7 @@ int SpleeterProcessor_split(const TCHAR *modelName, AudioDataSource *audioDataSo
             outputs[i].index = 0;
             if (outputs[i].oper == NULL) {
                 DEBUG_ERROR("TF_GraphOperationByName() failed\n");
+                fprintf(stderr, "Error: Cannot find output tensor by name \"%s\".\n", modelInfo->outputNames[i]);
                 goto clean_up;
             }
         }
@@ -387,13 +373,11 @@ clean_up:
         TF_CloseSession(session, status);
         if (TF_GetCode(status) != TF_OK) {
             DEBUG_ERROR("TF_CloseSession() failed: %s\n", TF_Message(status));
-            goto clean_up;
         }
 
         TF_DeleteSession(session, status);
         if (TF_GetCode(status) != TF_OK) {
             DEBUG_ERROR("TF_DeleteSession() failed: %s\n", TF_Message(status));
-            goto clean_up;
         }
     }
 
