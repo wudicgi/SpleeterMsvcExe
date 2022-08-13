@@ -531,6 +531,15 @@ void AudioFileWriter_close(AudioFileWriter **objPtr) {
 
     AudioFileWriter *obj = *objPtr;
 
+    // 使编码器对已缓冲的 packet 做 flush 处理，并结束 stream
+    {
+        // 可参看 avcodec_send_frame() 函数对 frame 参数为 NULL 时的说明
+        int ret = _writeFrame(obj, NULL);
+        if (ret < 0) {
+            DEBUG_ERROR("_writeFrame() failed: error occurred when try to flush packets\n");
+        }
+    }
+
     // 写入尾部信息
     if ((obj->_outputFormatContext != NULL) && obj->_headerWritten) {
         int ret = av_write_trailer(obj->_outputFormatContext);
