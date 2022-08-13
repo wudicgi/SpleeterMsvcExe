@@ -522,8 +522,6 @@ EXPORTS
     av_version_info
     av_video_enc_params_alloc
     av_video_enc_params_create_side_data
-    av_vk_frame_alloc
-    av_vkfmt_from_pixfmt
     av_vlog
     av_write_image_line
     av_write_image_line2

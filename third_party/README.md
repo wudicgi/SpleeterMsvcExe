@@ -2,8 +2,8 @@
 
 ## ffmpeg-win64
 
-- ffmpeg-n4.4-178-g4b583e5425-win64-lgpl-shared-4.4.zip
-- build time: 2021-10-19 12:21 (UTC)
+- ffmpeg-n4.4.2-2-g7ffb7d4b04-win64-lgpl-shared-4.4.zip
+- build time: 2022-08-12 12:36 (UTC)
 - Downloaded from https://github.com/BtbN/FFmpeg-Builds/releases
 
 ## tensorflow-cpu-x64
