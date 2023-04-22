@@ -35,9 +35,19 @@ extern bool g_verboseMode;
 
 extern bool g_debugMode;
 
+#ifdef _UNICODE
+#define TSTRING_FORMAT_SPECIFIER    "%ls"
+#else
+#define TSTRING_FORMAT_SPECIFIER    "%s"
+#endif
+
 #define DEBUG_INFO(fmt, ...)        debugPrintInfo(fmt, __VA_ARGS__)
 
 #define DEBUG_ERROR(fmt, ...)       debugPrintError(fmt, __VA_ARGS__)
+
+void debugPrintInfo(const char *format, ...);
+
+void debugPrintError(const char *format, ...);
 
 #ifdef __cplusplus
 }

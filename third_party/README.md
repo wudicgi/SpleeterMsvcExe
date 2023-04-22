@@ -8,5 +8,5 @@
 
 ## tensorflow-cpu-x64
 
-- libtensorflow-cpu-windows-x86_64-1.15.0.zip
-- Downloaded from https://www.tensorflow.org/install/lang_c
+- libtensorflow-cpu-windows-x86_64-1.15.5-mod.1.zip
+- Downloaded from https://github.com/wudicgi/tensorflow-mod/releases/tag/v1.15.5-mod.1

@@ -1,0 +1,2 @@
+For more information, visit:
+https://github.com/wudicgi/tensorflow-mod/tree/r1.15-mod

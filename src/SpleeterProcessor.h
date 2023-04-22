@@ -45,7 +45,7 @@ typedef float SpleeterModelAudioSampleValue_t;
 #define SPLEETER_MODEL_MAX_OUTPUT_COUNT         5
 
 typedef struct {
-    const TCHAR     *name;
+    const TCHAR     *basicName;
     int             outputCount;
     const char      *outputNames[SPLEETER_MODEL_MAX_OUTPUT_COUNT];
     const TCHAR     *trackNames[SPLEETER_MODEL_MAX_OUTPUT_COUNT];

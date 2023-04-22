@@ -59,62 +59,107 @@ static AudioDataSource *_createAudioDataSource(AudioSampleValue_t *sampleValues,
 static void _noOpDeallocator(void *data, size_t a, void *b) {
 }
 
-static const char *_getModelPath(const TCHAR *modelName) {
-    TCHAR modelPathBuffer[FILE_PATH_MAX_SIZE] = { 0 };
-
-#if defined(_DEBUG) && 0
-    _sntprintf(modelPathBuffer, FILE_PATH_MAX_SIZE, _T("%s%s"),
-            _T("D:\\Projects\\SpleeterMsvcExe\\spleeter\\models\\"), modelName);
-#else
-    TCHAR programFolderPathBuffer[FILE_PATH_MAX_SIZE] = { 0 };
-
+static bool _getModelFolderPath(const TCHAR *modelName, char **out_modelFolderPath_utf8, char **out_savedModelFileName) {
     // 获取程序可执行文件的完整路径
-    if (GetModuleFileName(NULL, programFolderPathBuffer, FILE_PATH_MAX_SIZE) == 0) {
+    TCHAR programFolderPath[FILE_PATH_MAX_SIZE] = { 0 };
+    if (GetModuleFileName(NULL, programFolderPath, FILE_PATH_MAX_SIZE) == 0) {
         DEBUG_ERROR("GetModuleFileName() failed\n");
-        return NULL;
+        return false;
     }
-    programFolderPathBuffer[FILE_PATH_MAX_SIZE - 1] = _T('\0');     // 确保安全
+    programFolderPath[FILE_PATH_MAX_SIZE - 1] = _T('\0');       // 确保安全
 
     // 去除文件名部分，留下目录部分的完整路径
-    if (!PathRemoveFileSpec(programFolderPathBuffer)) {
+    if (!PathRemoveFileSpec(programFolderPath)) {
         DEBUG_ERROR("PathRemoveFileSpec() failed\n");
-        return NULL;
+        return false;
     }
-    programFolderPathBuffer[FILE_PATH_MAX_SIZE - 1] = _T('\0');
+    programFolderPath[FILE_PATH_MAX_SIZE - 1] = _T('\0');
 
-    _sntprintf(modelPathBuffer, FILE_PATH_MAX_SIZE, _T("%s%s%s"),
-            programFolderPathBuffer, _T("\\models\\"), modelName);
-#endif
-
-    modelPathBuffer[FILE_PATH_MAX_SIZE - 1] = _T('\0');
-
-    if (!PathFileExists(modelPathBuffer)) {
-        DEBUG_ERROR("Target model directory does not exist\n");
-        return NULL;
+    TCHAR modelsFolderPath[FILE_PATH_MAX_SIZE] = { 0 };
+    if (PathCombine(modelsFolderPath, programFolderPath, _T("models")) == NULL) {
+        DEBUG_ERROR("PathCombine() failed\n");
+        return false;
+    }
+    if (!PathFileExists(modelsFolderPath)) {
+        DEBUG_ERROR("Folder \"" TSTRING_FORMAT_SPECIFIER "\" does not exist\n", modelsFolderPath);
+        return false;
     }
 
-    const char *modelPath = AudioFileCommon_getUtf8StringFromUnicodeString(modelPathBuffer);
+    TCHAR modelFolderPath[FILE_PATH_MAX_SIZE] = { 0 };
+    if (PathCombine(modelFolderPath, modelsFolderPath, modelName) == NULL) {
+        DEBUG_ERROR("PathCombine() failed\n");
+        return false;
+    }
 
-    return modelPath;
+    if (!PathFileExists(modelFolderPath)) {
+        TCHAR modelName_dup[FILE_PATH_MAX_SIZE] = { _T('\0') };
+        _tcsncpy(modelName_dup, modelName, (FILE_PATH_MAX_SIZE - 1));
+        modelName_dup[FILE_PATH_MAX_SIZE - 1] = _T('\0');
+
+        TCHAR *charDash = _tcschr(modelName_dup, _T('-'));
+        if (charDash != NULL) {
+            *charDash = _T('\0');
+
+            const TCHAR *modelFolderName = (const TCHAR *)modelName_dup;
+            const TCHAR *variantSuffix = (const TCHAR *)(charDash + 1);
+
+            memset(modelFolderPath, 0, sizeof(modelFolderPath));
+            if (PathCombine(modelFolderPath, modelsFolderPath, modelFolderName) == NULL) {
+                DEBUG_ERROR("PathCombine() failed\n");
+                return false;
+            }
+
+            if (PathFileExists(modelFolderPath)) {
+                TCHAR savedModelFileName[FILE_PATH_MAX_SIZE] = { 0 };
+                _sntprintf(savedModelFileName, FILE_PATH_MAX_SIZE, _T("saved_model-%s.pb"), variantSuffix);
+                savedModelFileName[FILE_PATH_MAX_SIZE - 1] = _T('\0');
+
+                TCHAR savedModelFilePath[FILE_PATH_MAX_SIZE] = { 0 };
+                if (PathCombine(savedModelFilePath, modelFolderPath, savedModelFileName) == NULL) {
+                    DEBUG_ERROR("PathCombine() failed\n");
+                    return false;
+                }
+                if (PathFileExists(savedModelFilePath)) {
+                    *out_modelFolderPath_utf8 = AudioFileCommon_getUtf8StringFromUnicodeString(modelFolderPath);
+                    *out_savedModelFileName = AudioFileCommon_getUtf8StringFromUnicodeString(savedModelFileName);
+
+                    return true;
+                } else {
+                    DEBUG_ERROR("SavedModel .pb file \"" TSTRING_FORMAT_SPECIFIER "\" does not exist\n", savedModelFilePath);
+                }
+            } else {
+                DEBUG_ERROR("Folder \"" TSTRING_FORMAT_SPECIFIER "\" does not exist\n", modelFolderPath);
+            }
+        } else {
+            DEBUG_ERROR("Folder \"" TSTRING_FORMAT_SPECIFIER "\" does not exist\n", modelFolderPath);
+        }
+
+        return false;
+    }
+
+    *out_modelFolderPath_utf8 = AudioFileCommon_getUtf8StringFromUnicodeString(modelFolderPath);
+    *out_savedModelFileName = NULL;
+
+    return true;
 }
 
 static const SpleeterModelInfo _modelInfoList[] = {
     {
-        .name           = _T("2stems"),
+        .basicName      = _T("2stems"),
         .outputCount    = 2,
         .outputNames    = { "output_vocals", "output_accompaniment" },
         .trackNames     = { _T("vocals"), _T("accompaniment") }
     },
 
     {
-        .name           = _T("4stems"),
+        .basicName      = _T("4stems"),
         .outputCount    = 4,
         .outputNames    = { "output_vocals", "output_drums", "output_bass", "output_other" },
         .trackNames     = { _T("vocals"), _T("drums"), _T("bass"), _T("other") }
     },
 
     {
-        .name           = _T("5stems"),
+        .basicName      = _T("5stems"),
         .outputCount    = 5,
         .outputNames    = { "output_vocals", "output_drums", "output_bass", "output_piano", "output_other" },
         .trackNames     = { _T("vocals"), _T("drums"), _T("bass"), _T("piano"), _T("other") }
@@ -125,7 +170,7 @@ const SpleeterModelInfo *SpleeterProcessor_getModelInfo(const TCHAR *modelName) 
     for (int i = 0; i < (sizeof(_modelInfoList) / sizeof(_modelInfoList[0])); i++) {
         const SpleeterModelInfo *modelInfo = &_modelInfoList[i];
 
-        if (_tcsstr(modelName, modelInfo->name) != NULL) {
+        if (_tcsstr(modelName, modelInfo->basicName) != NULL) {
             return modelInfo;
         }
     }
@@ -135,6 +180,9 @@ const SpleeterModelInfo *SpleeterProcessor_getModelInfo(const TCHAR *modelName) 
 
 int SpleeterProcessor_split(const TCHAR *modelName, AudioDataSource *audioDataSource, SpleeterProcessorResult **resultOut) {
     SpleeterProcessorResult *result = NULL;
+
+    char *modelFolderPath_utf8 = NULL;
+    char *savedModelFileName_utf8 = NULL;
 
     SpleeterModelAudioSampleValue_t *outputSampleValuesBufferList[SPLEETER_MODEL_MAX_OUTPUT_COUNT] = { 0 };
 
@@ -150,6 +198,11 @@ int SpleeterProcessor_split(const TCHAR *modelName, AudioDataSource *audioDataSo
     const SpleeterModelInfo *modelInfo = SpleeterProcessor_getModelInfo(modelName);
     if (modelInfo == NULL) {
         DEBUG_ERROR("SpleeterProcessor_getModelInfo() failed\n");
+        goto clean_up;
+    }
+
+    if (!_getModelFolderPath(modelName, &modelFolderPath_utf8, &savedModelFileName_utf8)) {
+        DEBUG_ERROR("_getModelFolderPath() failed\n");
         goto clean_up;
     }
 
@@ -178,12 +231,6 @@ int SpleeterProcessor_split(const TCHAR *modelName, AudioDataSource *audioDataSo
     SpleeterModelAudioSampleValue_t *intputSampleValuesInterlaced = audioDataSource->sampleValues;
     int inputSampleCountPerChannel = audioDataSource->sampleCountPerChannel;
 
-    const char *modelPath = _getModelPath(modelInfo->name);
-    if (modelPath == NULL) {
-        DEBUG_ERROR("_getModelPath() failed\n");
-        goto clean_up;
-    }
-
     //////////////////////////////// Allocate Buffers ////////////////////////////////
 
     for (int i = 0; i < modelInfo->outputCount; i++) {
@@ -195,9 +242,6 @@ int SpleeterProcessor_split(const TCHAR *modelName, AudioDataSource *audioDataSo
 
     Common_updateProgress(STAGE_SPLEETER_PROCESSOR_LOAD_MODEL, 0, 1);
 
-    TCHAR *tfCppMinLogLevelReadback_1 = _tgetenv(_T("TF_CPP_MIN_LOG_LEVEL"));
-    DEBUG_INFO("now TF_CPP_MIN_LOG_LEVEL = %S\n", tfCppMinLogLevelReadback_1);
-
     /*
      * TF_CPP_MIN_LOG_LEVEL:
      * 0: all messages are logged (default behavior)
@@ -205,22 +249,37 @@ int SpleeterProcessor_split(const TCHAR *modelName, AudioDataSource *audioDataSo
      * 2: INFO and WARNING messages are not printed
      * 3: INFO, WARNING, and ERROR messages are not printed
      */
-    const TCHAR *tfCppMinLogLevel;
+    const char *tfCppMinLogLevel;
     if (g_verboseMode) {
-        tfCppMinLogLevel = _T("0");     // show all messages
+        tfCppMinLogLevel = "0";     // show all messages
     } else {
-        tfCppMinLogLevel = _T("1");     // show warning and error messages
+        tfCppMinLogLevel = "1";     // show warning and error messages
     }
 
-    DEBUG_INFO("set TF_CPP_MIN_LOG_LEVEL = %S\n", tfCppMinLogLevel);
-    _tputenv_s(_T("TF_CPP_MIN_LOG_LEVEL"), tfCppMinLogLevel);
+    // Notice: Due to the behaviour of MSVC CRT, the getenv() call in tensorflow.dll cannot get the latest environment variable value in debug version
+    // which uses /MDd compile parameter. So when using debug version, the above log level setting may not take effect.
+    // But the release version which uses /MD compile parameter does not have this problem.
+    DEBUG_INFO("set TF_CPP_MIN_LOG_LEVEL = %s\n", tfCppMinLogLevel);
+    _putenv_s("TF_CPP_MIN_LOG_LEVEL", tfCppMinLogLevel);
+    DEBUG_INFO("now TF_CPP_MIN_LOG_LEVEL = %s\n", getenv("TF_CPP_MIN_LOG_LEVEL"));
 
-    TCHAR *tfCppMinLogLevelReadback_2 = _tgetenv(_T("TF_CPP_MIN_LOG_LEVEL"));
-    DEBUG_INFO("now TF_CPP_MIN_LOG_LEVEL = %S\n", tfCppMinLogLevelReadback_2);
+    if (savedModelFileName_utf8 != NULL) {
+        // Our custom added code in tensorflow library uses GetEnvironmentVariableA() to get the value of this environment variable,
+        // so there is no problem like the above TF_CPP_MIN_LOG_LEVEL.
+        DEBUG_INFO("set TF_CPP_SAVED_MODEL_FILENAME_PB = %s\n", savedModelFileName_utf8);
+        _putenv_s("TF_CPP_SAVED_MODEL_FILENAME_PB", savedModelFileName_utf8);   // "saved_model-测试.pb"
+        DEBUG_INFO("now TF_CPP_SAVED_MODEL_FILENAME_PB = %s\n", getenv("TF_CPP_SAVED_MODEL_FILENAME_PB"));
+    }
 
-    // Notice: the above log level setting only takes effect in release version of this program
+    const char *tensorFlowVersion = TF_Version();
+    DEBUG_INFO("TensorFlow C library version %s\n", tensorFlowVersion);
 
-    DEBUG_INFO("TensorFlow C library version %s\n", TF_Version());
+    if ((savedModelFileName_utf8 != NULL)
+            && (strstr(tensorFlowVersion, "-mod") == NULL)) {
+        DEBUG_ERROR("The TensorFlow library loaded (%s) is not our mod version, not supporting change the filename of saved_model.pb.\n", tensorFlowVersion);
+        DEBUG_ERROR("Please execute the batch script \"extract_16kHz_22kHz_models_into_separated_folders.bat\" in \"models\" folder.\n");
+        goto clean_up;
+    }
 
     status = TF_NewStatus();
 
@@ -233,13 +292,13 @@ int SpleeterProcessor_split(const TCHAR *modelName, AudioDataSource *audioDataSo
     const char *tags[] = { "serve" };
 
     session = TF_LoadSessionFromSavedModel(
-        sessionOptions,     // session_options
-        runOptions,         // run_options
-        modelPath,          // export_dir
-        tags, 1,            // tags, tags_len
-        graph,              // graph
-        metaGraphDef,       // meta_graph_def
-        status              // status
+        sessionOptions,         // session_options
+        runOptions,             // run_options
+        modelFolderPath_utf8,   // export_dir
+        tags, 1,                // tags, tags_len
+        graph,                  // graph
+        metaGraphDef,           // meta_graph_def
+        status                  // status
     );
 
     if (TF_GetCode(status) != TF_OK) {
@@ -397,6 +456,13 @@ clean_up:
 
     if (status != NULL) {
         TF_DeleteStatus(status);
+    }
+
+    if (savedModelFileName_utf8 != NULL) {
+        Memory_free(&savedModelFileName_utf8);
+    }
+    if (modelFolderPath_utf8 != NULL) {
+        Memory_free(&modelFolderPath_utf8);
     }
 
     if (result == NULL) {

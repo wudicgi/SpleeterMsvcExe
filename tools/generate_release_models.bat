@@ -198,8 +198,8 @@ echo.
 
 echo ============ Copy batch files ============
 echo.
-echo Copy template_generate_16kHz_22kHz.bat file...
-xcopy "%DIR_BASE%\template_generate_16kHz_22kHz.bat" "%DIR_PACKED_MODELS%\generate_16kHz_22kHz.bat*"
+echo Copy extract_16kHz_22kHz_models_into_separated_folders.bat file...
+xcopy "%DIR_BASE%\extract_16kHz_22kHz_models_into_separated_folders.bat" "%DIR_PACKED_MODELS%\extract_16kHz_22kHz_models_into_separated_folders.bat*"
 echo.
 
 echo ============ Update folder time ============
