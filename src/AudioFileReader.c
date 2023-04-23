@@ -96,7 +96,7 @@ AudioFileReader *AudioFileReader_open(const TCHAR *filename, const AudioSampleTy
     // 查找第一个音频流
     size_t audioStreamIndex = 0;
     while (audioStreamIndex < obj->_inputFormatContext->nb_streams) {
-        if (obj->_inputFormatContext->streams[audioStreamIndex]->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
+        if (obj->_inputFormatContext->streams[audioStreamIndex]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
             break;
         }
 
@@ -108,24 +108,36 @@ AudioFileReader *AudioFileReader_open(const TCHAR *filename, const AudioSampleTy
     }
     obj->_audioStreamIndex = audioStreamIndex;
 
-    // 获取音频流的 codec context
-    obj->_audioDecoderContext = obj->_inputFormatContext->streams[audioStreamIndex]->codec;
+    AVStream *stream = obj->_inputFormatContext->streams[audioStreamIndex];
+
+    // 获取音频流的 decoder
+    obj->_audioDecoder = avcodec_find_decoder(stream->codecpar->codec_id);
+    if (obj->_audioDecoder == NULL) {
+        DEBUG_ERROR("audio decoder not found\n");
+        goto err;
+    }
+
+    // 创建解码器的 context
+    obj->_audioDecoderContext = avcodec_alloc_context3(obj->_audioDecoder);
+    if (obj->_audioDecoderContext == NULL) {
+        DEBUG_ERROR("audio decoder context alloc failed\n");
+        goto err;
+    }
+
+    // 复制音频流的 codec 参数到解码器的 context
+    ret = avcodec_parameters_to_context(obj->_audioDecoderContext, stream->codecpar);
+    if (ret < 0) {
+        DEBUG_ERROR("failed to copy codec parameters to decoder context\n");
+        goto err;
+    }
     if (obj->_audioDecoderContext == NULL) {
         DEBUG_ERROR("audio decoder context is null\n");
         goto err;
     }
 
-    // TODO, from ffmpeg_decode.cpp
-    if (obj->_audioDecoderContext->channel_layout == 0) {
-        obj->_audioDecoderContext->channel_layout = AV_CH_LAYOUT_STEREO;
-    }
-
-    // 获取音频流的 decoder
-    obj->_audioDecoder = avcodec_find_decoder(obj->_audioDecoderContext->codec_id);
-    if (obj->_audioDecoder == NULL) {
-        DEBUG_ERROR("audio decoder not found\n");
-        goto err;
-    }
+    // Set the packet timebase for the decoder
+    // Useful for subtitles retiming by lavf (FIXME), skipping samples in audio, and video decoders such as cuvid or mediacodec.
+    obj->_audioDecoderContext->pkt_timebase = stream->time_base;
 
     // 用找到的 decoder 初始化 codec context
     ret = avcodec_open2(obj->_audioDecoderContext, obj->_audioDecoder, NULL);
@@ -135,9 +147,13 @@ AudioFileReader *AudioFileReader_open(const TCHAR *filename, const AudioSampleTy
     }
 
     // 获取输出声道布局
-    int64_t outputChannelLayout = AudioFileCommon_getChannelLayout(outputSampleType->channelCount);
-    if (outputChannelLayout == -1) {
-        DEBUG_ERROR("AudioFileCommon_getChannelLayout() failed\n");
+    AVChannelLayout outputChannelLayout;
+    if (outputSampleType->channelCount == 1) {
+        outputChannelLayout = (AVChannelLayout)AV_CHANNEL_LAYOUT_MONO;
+    } else if (outputSampleType->channelCount == 2) {
+        outputChannelLayout = (AVChannelLayout)AV_CHANNEL_LAYOUT_STEREO;
+    } else {
+        DEBUG_ERROR("wrong output channel count: %d\n", outputSampleType->channelCount);
         goto err;
     }
 
@@ -149,19 +165,19 @@ AudioFileReader *AudioFileReader_open(const TCHAR *filename, const AudioSampleTy
     }
 
     // 初始化 libswresample 重采样器的 context
-    obj->_resamplerContext = swr_alloc_set_opts(
-        NULL,                                       // no existing swresample context
-        outputChannelLayout,                        // [output] channel layout
+    swr_alloc_set_opts2(
+        &obj->_resamplerContext,                    // swresample context
+        &outputChannelLayout,                       // [output] channel layout
         outputSampleFormat,                         // [output] sample format
         obj->outputSampleType->sampleRate,          // [output] sample rate
-        obj->_audioDecoderContext->channel_layout,  // [input] channel layout
+        &obj->_audioDecoderContext->ch_layout,      // [input] channel layout
         obj->_audioDecoderContext->sample_fmt,      // [input] sample format
         obj->_audioDecoderContext->sample_rate,     // [input] sample rate
         0,                                          // logging level offset
         NULL                                        // parent logging context, can be NULL
     );
     if (obj->_resamplerContext == NULL) {
-        DEBUG_ERROR("swr_alloc_set_opts() failed\n");
+        DEBUG_ERROR("swr_alloc_set_opts2() failed\n");
         goto err;
     }
 
@@ -215,16 +231,22 @@ int AudioFileReader_read(AudioFileReader *obj, void *destBuffer, int destBufferS
         return 0;
     }
 
-    // 解码 packet 为 frame
-    int gotFrame = 0;
-#pragma warning(suppress : 4996)    // 忽略 avcodec_decode_audio4() 函数被标记为已废弃的警告
-    ret = avcodec_decode_audio4(obj->_audioDecoderContext, obj->_tempFrame, &gotFrame, obj->_tempPacket);
+    // 将该 packet 提交给解码器
+    ret = avcodec_send_packet(obj->_audioDecoderContext, obj->_tempPacket);
     if (ret < 0) {
-        DEBUG_ERROR("avcodec_decode_audio4() failed\n");
+        DEBUG_ERROR("avcodec_send_packet() failed: %s\n", av_err2str(ret));
         return -1;
     }
-    if (!gotFrame) {
+
+    // 从解码器获取可用的 frame
+    ret = avcodec_receive_frame(obj->_audioDecoderContext, obj->_tempFrame);
+    if ((ret == AVERROR(EAGAIN)) || (ret == AVERROR_EOF)) {
+        // those two return values are special and mean there is no output
+        // frame available, but there were no errors during decoding
         return 0;
+    } else if (ret < 0) {
+        DEBUG_ERROR("avcodec_receive_frame() failed: %s\n", av_err2str(ret));
+        return -1;
     }
 
     // 获取输出样本值格式
@@ -236,8 +258,7 @@ int AudioFileReader_read(AudioFileReader *obj, void *destBuffer, int destBufferS
             || (resamplerUpperBoundOutputSampleCountPerChannel > obj->_resamplerOutputBufferSampleCountPerChannel)) {
         // 如果是扩大 buffer 空间的情况，先释放原有空间
         if (obj->_resamplerOutputBuffer != NULL) {
-            av_free(obj->_resamplerOutputBuffer);
-            obj->_resamplerOutputBuffer = NULL;
+            av_freep(&obj->_resamplerOutputBuffer);
         }
 
         obj->_resamplerOutputBufferSampleCountPerChannel = resamplerUpperBoundOutputSampleCountPerChannel;
@@ -290,8 +311,7 @@ void AudioFileReader_close(AudioFileReader **objPtr) {
     AudioFileReader *obj = *objPtr;
 
     if (obj->_resamplerOutputBuffer != NULL) {
-        av_free(obj->_resamplerOutputBuffer);
-        obj->_resamplerOutputBuffer = NULL;
+        av_freep(&obj->_resamplerOutputBuffer);
     }
 
     if (obj->_tempFrame != NULL) {

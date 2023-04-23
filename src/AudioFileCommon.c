@@ -73,13 +73,3 @@ int AudioFileCommon_getSampleValueSize(AudioSampleValueFormat sampleValueFormat)
             return -1;
     }
 }
-
-int64_t AudioFileCommon_getChannelLayout(int channelCount) {
-    if (channelCount == 1) {
-        return AV_CH_LAYOUT_MONO;
-    } else if (channelCount == 2) {
-        return AV_CH_LAYOUT_STEREO;
-    } else {
-        return -1;
-    }
-}

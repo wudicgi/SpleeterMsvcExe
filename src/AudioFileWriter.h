@@ -27,6 +27,7 @@
 
 #include <tchar.h>
 #include "libavformat/avformat.h"
+#include "libavcodec/avcodec.h"
 #include "libswscale/swscale.h"
 #include "libswresample/swresample.h"
 #include "AudioFileCommon.h"
@@ -64,9 +65,12 @@ typedef struct {
     AVStream                *_audioStream;
 
     /** 编码器 */
-    AVCodec                 *_audioEncoder;
+    const AVCodec           *_audioEncoder;
     /** 编码器的 context */
     AVCodecContext          *_audioEncoderContext;
+
+    /** 写入 frame 时使用的临时 packet */
+    AVPacket                *_tempPacket;
 
     /** 重采样器的 context */
     SwrContext              *_resamplerContext;

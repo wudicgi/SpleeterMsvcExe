@@ -56,10 +56,10 @@ typedef struct {
 
     /** 输入容器格式的 context */
     AVFormatContext     *_inputFormatContext;
+    /** 解码器 */
+    const AVCodec       *_audioDecoder;
     /** 解码器的 context */
     AVCodecContext      *_audioDecoderContext;
-    /** 解码器 */
-    AVCodec             *_audioDecoder;
     /** 重采样器 */
     SwrContext          *_resamplerContext;
 

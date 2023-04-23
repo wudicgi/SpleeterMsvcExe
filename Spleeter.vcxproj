@@ -123,20 +123,20 @@ xcopy /y /d "$(ProjectDir)third_party\tensorflow-cpu-x64\dll\*.dll" "$(TargetDir
     <ClInclude Include="version.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="third_party\ffmpeg-win64\dll\avcodec-58.dll" />
-    <None Include="third_party\ffmpeg-win64\dll\avdevice-58.dll" />
-    <None Include="third_party\ffmpeg-win64\dll\avfilter-7.dll" />
-    <None Include="third_party\ffmpeg-win64\dll\avformat-58.dll" />
-    <None Include="third_party\ffmpeg-win64\dll\avutil-56.dll" />
-    <None Include="third_party\ffmpeg-win64\dll\swresample-3.dll" />
-    <None Include="third_party\ffmpeg-win64\dll\swscale-5.dll" />
-    <None Include="third_party\ffmpeg-win64\lib\avcodec-58.def" />
-    <None Include="third_party\ffmpeg-win64\lib\avdevice-58.def" />
-    <None Include="third_party\ffmpeg-win64\lib\avfilter-7.def" />
-    <None Include="third_party\ffmpeg-win64\lib\avformat-58.def" />
-    <None Include="third_party\ffmpeg-win64\lib\avutil-56.def" />
-    <None Include="third_party\ffmpeg-win64\lib\swresample-3.def" />
-    <None Include="third_party\ffmpeg-win64\lib\swscale-5.def" />
+    <None Include="third_party\ffmpeg-win64\dll\avcodec-60.dll" />
+    <None Include="third_party\ffmpeg-win64\dll\avdevice-60.dll" />
+    <None Include="third_party\ffmpeg-win64\dll\avfilter-9.dll" />
+    <None Include="third_party\ffmpeg-win64\dll\avformat-60.dll" />
+    <None Include="third_party\ffmpeg-win64\dll\avutil-58.dll" />
+    <None Include="third_party\ffmpeg-win64\dll\swresample-4.dll" />
+    <None Include="third_party\ffmpeg-win64\dll\swscale-7.dll" />
+    <None Include="third_party\ffmpeg-win64\lib\avcodec-60.def" />
+    <None Include="third_party\ffmpeg-win64\lib\avdevice-60.def" />
+    <None Include="third_party\ffmpeg-win64\lib\avfilter-9.def" />
+    <None Include="third_party\ffmpeg-win64\lib\avformat-60.def" />
+    <None Include="third_party\ffmpeg-win64\lib\avutil-58.def" />
+    <None Include="third_party\ffmpeg-win64\lib\swresample-4.def" />
+    <None Include="third_party\ffmpeg-win64\lib\swscale-7.def" />
     <None Include="third_party\tensorflow-cpu-x64\dll\tensorflow.dll" />
   </ItemGroup>
   <ItemGroup>

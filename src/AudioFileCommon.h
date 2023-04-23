@@ -94,15 +94,6 @@ enum AVSampleFormat AudioFileCommon_getAvSampleFormat(AudioSampleValueFormat sam
  */
 int AudioFileCommon_getSampleValueSize(AudioSampleValueFormat sampleValueFormat);
 
-/**
- * 获取指定声道数对应的 AV_CH_LAYOUT_* 常量值
- *
- * @param   声道数
- *
- * @return  成功时返回 AV_CH_LAYOUT_* 常量值, 失败时返回 -1
- */
-int64_t AudioFileCommon_getChannelLayout(int channelCount);
-
 #ifdef __cplusplus
 }
 #endif
