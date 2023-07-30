@@ -78,9 +78,19 @@ const SpleeterModelInfo *SpleeterProcessor_getModelInfo(const TCHAR *modelName);
  * @param   audioDataSource     输入音频数据源
  * @param   resultOut           分离结果
  *
- * @param   成功时返回 0, 失败时返回小于 0 的错误码
+ * @return  成功时返回 0, 失败时返回小于 0 的错误码
  */
 int SpleeterProcessor_split(const TCHAR *modelName, AudioDataSource *audioDataSource, SpleeterProcessorResult **resultOut);
+
+/**
+ * 根据轨道名称获取 SpleeterProcessorResult 中的轨道
+ *
+ * @param   obj                 指向 SpleeterProcessorResult 结构体的指针
+ * @param   trackName           轨道名称
+ *
+ * @return  成功时返回指向 SpleeterProcessorResultTrack 结构体的指针，失败时返回 NULL
+ */
+SpleeterProcessorResultTrack *SpleeterProcessorResult_getTrack(SpleeterProcessorResult *obj, const TCHAR *trackName);
 
 /**
  * 释放 SpleeterProcessorResult 结构体和其中的音轨名称、音频数据所占用的内存空间

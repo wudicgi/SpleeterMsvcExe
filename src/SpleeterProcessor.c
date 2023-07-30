@@ -45,7 +45,7 @@ static const int EXTEND_LENGTH = SPLEETER_MODEL_AUDIO_SAMPLE_RATE * 5;
 static const int LAST_SEGMENT_MIN_LENGTH = SPLEETER_MODEL_AUDIO_SAMPLE_RATE * 10;
 
 static AudioDataSource *_createAudioDataSource(AudioSampleValue_t *sampleValues, int sampleCountPerChannel) {
-    AudioDataSource *audioDataSource = AudioDataSource_create();
+    AudioDataSource *audioDataSource = AudioDataSource_alloc();
 
     audioDataSource->filenameUtf8 = NULL;
     audioDataSource->sampleRate = SPLEETER_MODEL_AUDIO_SAMPLE_RATE;
@@ -472,6 +472,18 @@ clean_up:
 
     *resultOut = result;
     return 0;
+}
+
+SpleeterProcessorResultTrack *SpleeterProcessorResult_getTrack(SpleeterProcessorResult *obj, const TCHAR *trackName) {
+    for (int i = 0; i < obj->trackCount; i++) {
+        SpleeterProcessorResultTrack *track = &obj->trackList[i];
+
+        if (_tcscmp(track->trackName, trackName) == 0) {
+            return track;
+        }
+    }
+
+    return NULL;
 }
 
 void SpleeterProcessorResult_free(SpleeterProcessorResult **objPtr) {

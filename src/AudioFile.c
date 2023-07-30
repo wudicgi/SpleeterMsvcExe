@@ -37,7 +37,7 @@
 #include "AudioFileWriter.h"
 #include "AudioFile.h"
 
-AudioDataSource *AudioDataSource_create(void) {
+AudioDataSource *AudioDataSource_alloc(void) {
     AudioDataSource *dataSource = MEMORY_ALLOC_STRUCT(AudioDataSource);
 
     return dataSource;
@@ -59,6 +59,40 @@ void AudioDataSource_free(AudioDataSource **objPtr) {
     }
 
     Memory_free(objPtr);
+}
+
+AudioDataSource *AudioDataSource_createEmpty(AudioDataSource *objRef) {
+    AudioDataSource *objDup = AudioDataSource_alloc();
+
+    int samplesBufferSize = sizeof(AudioSampleValue_t) * (objRef->sampleCountPerChannel * objRef->channelCount);
+
+    if (objRef->filenameUtf8 != NULL) {
+        objDup->filenameUtf8 = _strdup(objRef->filenameUtf8);
+    } else {
+        objDup->filenameUtf8 = NULL;
+    }
+    objDup->sampleRate = objRef->sampleRate;
+    objDup->sampleValues = (AudioSampleValue_t *)Memory_alloc(samplesBufferSize);
+    objDup->sampleCountPerChannel = objRef->sampleCountPerChannel;
+    objDup->channelCount = objRef->channelCount;
+
+    return objDup;
+}
+
+void AudioDataSource_addSamples(AudioDataSource *obj, AudioDataSource *obj2) {
+    int samplesCountInTotal = obj->sampleCountPerChannel * obj->channelCount;
+
+    for (int i = 0; i < samplesCountInTotal; i++) {
+        obj->sampleValues[i] += obj2->sampleValues[i];
+    }
+}
+
+void AudioDataSource_subSamples(AudioDataSource *obj, AudioDataSource *obj2) {
+    int samplesCountInTotal = obj->sampleCountPerChannel * obj->channelCount;
+
+    for (int i = 0; i < samplesCountInTotal; i++) {
+        obj->sampleValues[i] -= obj2->sampleValues[i];
+    }
 }
 
 AudioDataSource *AudioFile_readAll(const TCHAR *filename, const AudioSampleType *outputSampleType) {
@@ -104,7 +138,7 @@ AudioDataSource *AudioFile_readAll(const TCHAR *filename, const AudioSampleType 
 
     AudioFileReader_close(&obj);
 
-    AudioDataSource *dataSource = AudioDataSource_create();
+    AudioDataSource *dataSource = AudioDataSource_alloc();
 
     dataSource->filenameUtf8 = filenameUtf8;
     dataSource->sampleRate = sampleRate;

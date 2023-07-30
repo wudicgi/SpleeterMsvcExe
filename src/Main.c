@@ -36,6 +36,9 @@
 #include "AudioFileReader.h"
 #include "SpleeterProcessor.h"
 
+/**
+ * 显示帮助文本
+ */
 static void _displayHelp(int argc, TCHAR *argv[]) {
     _tprintf(_T("%s %s\n"), _T(PROGRAM_NAME), _T(PROGRAM_VERSION));
     _tprintf(_T("\n"));
@@ -48,8 +51,17 @@ static void _displayHelp(int argc, TCHAR *argv[]) {
     _tprintf(_T("                        (2stems, 4stems, 5stems-22khz, ..., default: 2stems)\n"));
     _tprintf(_T("    -o, --output        Output base file name\n"));
     _tprintf(_T("                        (in the format of filename.ext, default: <input_file_path>)\n"));
-    _tprintf(_T("    -b, --bitrate       Output file bit rate\n"));
+    _tprintf(_T("    -b, --bitrate       Output file bitrate\n"));
     _tprintf(_T("                        (128k, 192000, 256k, ..., default: 256k)\n"));
+    _tprintf(_T("    -t, --tracks        Output track list (comma separated track names)\n"));
+    _tprintf(_T("                        Default value is empty to output all tracks\n"));
+    _tprintf(_T("                        Available track names:\n"));
+    _tprintf(_T("                            input, vocals, accompaniment, drums, bass, piano, other\n"));
+    _tprintf(_T("                        Examples:\n"));
+    _tprintf(_T("                            accompaniment               Output accompaniment track only\n"));
+    _tprintf(_T("                            vocals,drums                Output vocals and drums tracks\n"));
+    _tprintf(_T("                            mixed=vocals+drums          Mix vocals and drums as \"mixed\" track\n"));
+    _tprintf(_T("                            vocals,acc=input-vocals     Output vocals and accompaniment for 4stems model\n"));
     _tprintf(_T("    --overwrite         Overwrite when the target output file exists\n"));
     _tprintf(_T("    --verbose           Display detailed processing information\n"));
     _tprintf(_T("    --debug             Display debug information\n"));
@@ -74,6 +86,9 @@ static void _displayHelp(int argc, TCHAR *argv[]) {
     _tprintf(_T("    - Splits song.mp3 into 5 tracks\n"));
 }
 
+/**
+ * 显示程序版本号
+ */
 static void _displayVersion(void) {
     _tprintf(_T("%s\n"), _T(PROGRAM_VERSION));
 }
@@ -81,10 +96,15 @@ static void _displayVersion(void) {
 /**
  * 在文件路径原有的扩展名前添加额外的扩展名
  *
+ * 例如对于 srcFilePath = "dir\file.mp3", extraExtension = "vocals", 返回结果为
+ * "dir\file.vocals.mp3"
+ *
  * @param   destFilePathBuffer              目标文件路径缓冲区
  * @param   destFilePathBufferCharCount     destFilePathBuffer 所能容纳的字符数
  * @param   srcFilePath                     原始文件路径
  * @param   extraExtension                  要添加的额外扩展名 (不包含起始位置的 ".")
+ *
+ * @return  成功时返回 true, 失败时返回 false
  */
 static bool _addExtraExtensionBeforeOriginalExtension(TCHAR *destFilePathBuffer, size_t destFilePathBufferCharCount,
         const TCHAR *srcFilePath, const TCHAR *extraExtension) {
@@ -109,6 +129,13 @@ static bool _addExtraExtensionBeforeOriginalExtension(TCHAR *destFilePathBuffer,
     }
 }
 
+/**
+ * 检查指定的输入文件是否存在和可读
+ *
+ * @param   inputFilePath       要检查输入文件的路径
+ *
+ * @return  如果文件存在且可读，返回 true, 否则返回 false
+ */
 static bool _checkInputFilePath(const TCHAR *inputFilePath) {
     // 检查指定的输入文件是否存在
     if (_taccess(inputFilePath, 0) == -1) {
@@ -125,6 +152,16 @@ static bool _checkInputFilePath(const TCHAR *inputFilePath) {
     return true;
 }
 
+/**
+ * 获取输出文件路径
+ *
+ * @param   outputFilePathBuffer                用于存储输出文件路径的缓冲区
+ * @param   outputFilePathBufferCharCount       outputFilePathBuffer 缓冲区的大小 (可容纳字符数)
+ * @param   outputBaseFilePath                  输出文件基础路径
+ * @param   trackName                           轨道名称
+ *
+ * @return  成功时返回 true, 失败时返回 false
+ */
 static bool _getOutputFilePath(TCHAR *outputFilePathBuffer, size_t outputFilePathBufferCharCount,
         const TCHAR *outputBaseFilePath, const TCHAR *trackName) {
     // 检查 outputBaseFilePath 加上 trackName 后是否超长
@@ -138,6 +175,14 @@ static bool _getOutputFilePath(TCHAR *outputFilePathBuffer, size_t outputFilePat
     return true;
 }
 
+/**
+ * 检查指定的输出文件路径是否可用
+ *
+ * @param   outputFilePath      要检查的输出文件路径
+ * @param   overwriteFlag       当指定路径的输出文件已存在时，是否允许覆盖
+ *
+ * @return  如果指定路径的文件已存在，或不可覆盖，或不可写入，则返回 false, 否则返回 true
+ */
 static bool _checkOutputFilePath(const TCHAR *outputFilePath, int overwriteFlag) {
     // 如果 outputFilePath 存在
     if (_taccess(outputFilePath, 0) != -1) {
@@ -157,6 +202,14 @@ static bool _checkOutputFilePath(const TCHAR *outputFilePath, int overwriteFlag)
     return true;
 }
 
+/**
+ * 尝试解析比特率数值
+ *
+ * @param   parsedResultBitrate     指向用于存储解析结果的变量的指针
+ * @param   optionValue             要解析的文本 (可为纯数字，也可包含 'k' 或 'K' 单位后缀)
+ *
+ * @return  解析成功时返回 true, 失败时返回 false
+ */
 static bool _tryParseBitrate(int *parsedResultBitrate, const TCHAR *optionValue) {
     if (parsedResultBitrate == NULL) {
         return false;
@@ -185,6 +238,151 @@ static bool _tryParseBitrate(int *parsedResultBitrate, const TCHAR *optionValue)
     }
 }
 
+/** TrackList 中 TrackItem 的最大数量 */
+#define TRACK_ITEM_MAX_COUNT        10
+
+/** TrackItem 中 SourceTrackItem 的最大数量 */
+#define SOURCE_TRACK_MAX_COUNT      10
+
+/** trackName 字符数组的大小 */
+#define TRACK_NAME_MAX_SIZE         100
+
+/**
+ * 源轨道条目
+ */
+typedef struct {
+    /** 是否是减去该轨道 (即在混音时该轨道是否需要反相) */
+    bool    toSubtract;
+
+    /** 轨道名称 (vocals, drums, ...) */
+    TCHAR   trackName[TRACK_NAME_MAX_SIZE];
+} SourceTrackItem;
+
+/**
+ * 轨道条目
+ */
+typedef struct {
+    /** 轨道名称 (当源轨道条目列表不为空时，为最终输出的轨道名称；否则为 Spleeter 模型中的轨道名称) */
+    TCHAR               trackName[TRACK_NAME_MAX_SIZE];
+
+    /** 源轨道条目列表 */
+    SourceTrackItem     sourceTrackItems[SOURCE_TRACK_MAX_COUNT];
+
+    /** 源轨道条目数量 */
+    int                 sourceTrackItemCount;
+} TrackItem;
+
+/**
+ * 轨道列表
+ */
+typedef struct {
+    /** 轨道条目列表 */
+    TrackItem   trackItems[TRACK_ITEM_MAX_COUNT];
+
+    /** 轨道条目数量 */
+    int         trackItemCount;
+} TrackList;
+
+/**
+ * 尝试解析轨道名称
+ *
+ * 合法的轨道名称长度为 1 至 (TRACK_NAME_MAX_SIZE - 1) 个字符，仅可包含字母、数字和下划线
+ *
+ * @param   parsedTrackName     用于存放解析结果的字符数组
+ * @param   str                 要解析的文本
+ */
+static size_t _tryParseTrackName(TCHAR parsedTrackName[TRACK_NAME_MAX_SIZE], const TCHAR *str) {
+    size_t trackNameLength = _tcsspn(str, _T("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"));
+    if ((trackNameLength > 0) && (trackNameLength < TRACK_NAME_MAX_SIZE)) {
+        _tcsncpy(parsedTrackName, str, trackNameLength);
+        parsedTrackName[trackNameLength] = _T('\0');
+
+        return trackNameLength;
+    } else {
+        return 0;
+    }
+}
+
+/**
+ * 尝试解析轨道列表表达式
+ *
+ * @param   parsedTrackList     用于存放解析结果的结构体
+ * @param   optionValue         要解析的文本
+ *
+ * @return  解析成功时返回 true, 失败时返回 false
+ */
+static bool _tryParseTrackList(TrackList *parsedTrackList, const TCHAR *optionValue) {
+    memset(parsedTrackList, 0, sizeof(TrackList));
+
+    const TCHAR *p = optionValue;
+    const TCHAR *pEnd = p + _tcsclen(p);
+    while (p < pEnd) {
+        if (parsedTrackList->trackItemCount >= TRACK_ITEM_MAX_COUNT) {
+            return false;
+        }
+        TrackItem *trackItem = &parsedTrackList->trackItems[parsedTrackList->trackItemCount];
+
+        size_t trackNameLength = _tryParseTrackName(trackItem->trackName, p);
+        if (trackNameLength == 0) {
+            return false;
+        }
+        parsedTrackList->trackItemCount++;
+        p += trackNameLength;
+        if (p >= pEnd) {
+            break;
+        }
+
+        if (*p == _T(',')) {
+            p++;    // skip ','
+            continue;
+        }
+
+        if (*p == _T('=')) {
+            p++;    // skip '='
+            if (p >= pEnd) {
+                return false;
+            }
+
+            while (p < pEnd) {
+                if (trackItem->sourceTrackItemCount >= SOURCE_TRACK_MAX_COUNT) {
+                    return false;
+                }
+                SourceTrackItem *sourceTrackItem = &trackItem->sourceTrackItems[trackItem->sourceTrackItemCount];
+
+                if (*p == _T('-')) {
+                    sourceTrackItem->toSubtract = true;
+                    p++;
+                } else {
+                    if (*p == _T('+')) {
+                        p++;
+                    }
+                    sourceTrackItem->toSubtract = false;
+                }
+                if (p >= pEnd) {
+                    return false;
+                }
+
+                size_t sourceTrackNameLength = _tryParseTrackName(sourceTrackItem->trackName, p);
+                if (sourceTrackNameLength == 0) {
+                    return false;
+                }
+                trackItem->sourceTrackItemCount++;
+                p += sourceTrackNameLength;
+                if (p >= pEnd) {
+                    break;
+                }
+
+                if (*p == _T(',')) {
+                    p++;
+                    break;
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
 int _tmain(int argc, TCHAR *argv[]) {
     setlocale(LC_ALL, "");
 
@@ -201,6 +399,13 @@ int _tmain(int argc, TCHAR *argv[]) {
 
         argv[argc++] = _T("-b");
         argv[argc++] = _T("128k");
+
+        argv[argc++] = _T("-m");
+        argv[argc++] = _T("4stems");
+
+        argv[argc++] = _T("--tracks");
+        argv[argc++] = _T("vocals,vocals_and_drums=vocals+drums,vocals_removed_1=input-vocals,")
+                _T("vocals_removed_2=drums+bass+other,invert_test=-input+bass-other");
     }
 #endif
 
@@ -217,6 +422,8 @@ int _tmain(int argc, TCHAR *argv[]) {
 
     int outputFileBitrate = 0;
 
+    TrackList trackList = { 0 };
+
     static int overwriteFlag = 0;
     static int verboseFlag = 0;
     static int debugFlag = 0;
@@ -229,6 +436,7 @@ int _tmain(int argc, TCHAR *argv[]) {
             {_T("model"),       ARG_REQ,    0,              _T('m')},
             {_T("output"),      ARG_REQ,    0,              _T('o')},
             {_T("bitrate"),     ARG_REQ,    0,              _T('b')},
+            {_T("tracks"),      ARG_REQ,    0,              _T('t')},
             {_T("overwrite"),   ARG_NONE,   &overwriteFlag, 1},
             {_T("verbose"),     ARG_NONE,   &verboseFlag,   1},
             {_T("debug"),       ARG_NONE,   &debugFlag,     1},
@@ -238,7 +446,7 @@ int _tmain(int argc, TCHAR *argv[]) {
         };
 
         int longOptionIndex = 0;
-        int optionChar = getopt_long(argc, argv, _T("m:o:b:hv"), longOptions, &longOptionIndex);
+        int optionChar = getopt_long(argc, argv, _T("m:o:b:t:hv"), longOptions, &longOptionIndex);
         if (optionChar == -1) {
             // 所有选项都已被解析
             break;
@@ -288,8 +496,17 @@ int _tmain(int argc, TCHAR *argv[]) {
                 // -b, --bitrate
                 if (optarg != NULL) {
                     if (!_tryParseBitrate(&outputFileBitrate, optarg)) {
-                        _ftprintf(stderr, _T("Error: Failed to parse the specified bitrate \"%s\".\n"),
-                                optarg);
+                        _ftprintf(stderr, _T("Error: Failed to parse the specified bitrate \"%s\".\n"), optarg);
+                        return EXIT_FAILURE;
+                    }
+                }
+                break;
+
+            case _T('t'):
+                // -t, --tracks
+                if (optarg != NULL) {
+                    if (!_tryParseTrackList(&trackList, optarg)) {
+                        _ftprintf(stderr, _T("Error: Failed to parse the specified track list \"%s\".\n"), optarg);
                         return EXIT_FAILURE;
                     }
                 }
@@ -415,7 +632,6 @@ int _tmain(int argc, TCHAR *argv[]) {
     _tprintf(_T("\n"));
 
     if (!_checkInputFilePath(inputFilePath)) {
-        // 返回错误时, _checkInputFilePath() 已输出错误信息
         return EXIT_FAILURE;
     }
 
@@ -425,14 +641,12 @@ int _tmain(int argc, TCHAR *argv[]) {
     for (int i = 0; i < modelInfo->outputCount; i++) {
         TCHAR outputFilePath[FILE_PATH_MAX_SIZE] = { _T('\0') };
         if (!_getOutputFilePath(outputFilePath, FILE_PATH_MAX_SIZE, outputBaseFilePath, modelInfo->trackNames[i])) {
-            // 返回错误时, _getOutputFilePath() 已输出错误信息
             return EXIT_FAILURE;
         }
 
         _tprintf(_T("%s\n"), outputFilePath);
 
         if (!_checkOutputFilePath(outputFilePath, overwriteFlag)) {
-            // 返回错误时, _checkOutputFilePath() 已输出错误信息
             return EXIT_FAILURE;
         }
     }
@@ -467,27 +681,111 @@ int _tmain(int argc, TCHAR *argv[]) {
         return EXIT_FAILURE;
     }
 
-    for (int i = 0; i < result->trackCount; i++) {
-        SpleeterProcessorResultTrack *track = &result->trackList[i];
+    if (trackList.trackItemCount == 0) {
+        // 未指定 track list, 正常输出
 
-        TCHAR outputFilePath[FILE_PATH_MAX_SIZE] = { _T('\0') };
-        if (!_getOutputFilePath(outputFilePath, FILE_PATH_MAX_SIZE, outputBaseFilePath, track->trackName)) {
-            // 返回错误时, _getOutputFilePath() 已输出错误信息
-            return EXIT_FAILURE;
+        for (int i = 0; i < result->trackCount; i++) {
+            SpleeterProcessorResultTrack *track = &result->trackList[i];
+
+            TCHAR outputFilePath[FILE_PATH_MAX_SIZE] = { _T('\0') };
+            if (!_getOutputFilePath(outputFilePath, FILE_PATH_MAX_SIZE, outputBaseFilePath, track->trackName)) {
+                return EXIT_FAILURE;
+            }
+
+            if (!_checkOutputFilePath(outputFilePath, overwriteFlag)) {
+                return EXIT_FAILURE;
+            }
+
+            if (!AudioFile_writeAll(outputFilePath, &outputAudioFileFormat, &spleeterSampleType,
+                    (void *)track->audioDataSource->sampleValues, track->audioDataSource->sampleCountPerChannel)) {
+                _ftprintf(stderr, _T("Error: Failed to write output file \"%s\".\n"), outputFilePath);
+                return EXIT_FAILURE;
+            }
+
+            Common_updateProgress(STAGE_AUDIO_FILE_WRITER, (i + 1), result->trackCount);
         }
+    } else {
+        // 指定了 track list
 
-        if (!_checkOutputFilePath(outputFilePath, overwriteFlag)) {
-            // 返回错误时, _checkOutputFilePath() 已输出错误信息
-            return EXIT_FAILURE;
+        for (int i = 0; i < trackList.trackItemCount; i++) {
+            TrackItem *trackItem = &trackList.trackItems[i];
+
+            if (trackItem->sourceTrackItemCount == 0) {
+                // 该 TrackItem 仅选择了一条已知的轨道，不涉及轨道更名或运算
+
+                SpleeterProcessorResultTrack *track = SpleeterProcessorResult_getTrack(result, trackItem->trackName);
+                if (track == NULL) {
+                    _ftprintf(stderr, _T("Error: Track \"%s\" does not exist.\n"), trackItem->trackName);
+                    return EXIT_FAILURE;
+                }
+
+                TCHAR outputFilePath[FILE_PATH_MAX_SIZE] = { _T('\0') };
+                if (!_getOutputFilePath(outputFilePath, FILE_PATH_MAX_SIZE, outputBaseFilePath, track->trackName)) {
+                    return EXIT_FAILURE;
+                }
+
+                if (!_checkOutputFilePath(outputFilePath, overwriteFlag)) {
+                    return EXIT_FAILURE;
+                }
+
+                if (!AudioFile_writeAll(outputFilePath, &outputAudioFileFormat, &spleeterSampleType,
+                        (void *)track->audioDataSource->sampleValues, track->audioDataSource->sampleCountPerChannel)) {
+                    _ftprintf(stderr, _T("Error: Failed to write output file \"%s\".\n"), outputFilePath);
+                    return EXIT_FAILURE;
+                }
+
+                Common_updateProgress(STAGE_AUDIO_FILE_WRITER, (i + 1), trackList.trackItemCount);
+            } else {
+                // 该 TrackItem 指定了 source track list, 涉及轨道更名或运算
+
+                TCHAR outputFilePath[FILE_PATH_MAX_SIZE] = { _T('\0') };
+                if (!_getOutputFilePath(outputFilePath, FILE_PATH_MAX_SIZE, outputBaseFilePath, trackItem->trackName)) {
+                    return EXIT_FAILURE;
+                }
+
+                if (!_checkOutputFilePath(outputFilePath, overwriteFlag)) {
+                    return EXIT_FAILURE;
+                }
+
+                AudioDataSource *audioDataSourceComputed = NULL;
+                for (int j = 0; j < trackItem->sourceTrackItemCount; j++) {
+                    SourceTrackItem *sourceTrackItem = &trackItem->sourceTrackItems[j];
+
+                    AudioDataSource *sourceTrackAudioDataSource = NULL;
+                    if (_tcscmp(sourceTrackItem->trackName, _T("input")) == 0) {
+                        sourceTrackAudioDataSource = audioDataSourceStereo;
+                    } else {
+                        SpleeterProcessorResultTrack *sourceTrack = SpleeterProcessorResult_getTrack(result, sourceTrackItem->trackName);
+                        if (sourceTrack == NULL) {
+                            _ftprintf(stderr, _T("Error: Track \"%s\" does not exist.\n"), sourceTrackItem->trackName);
+                            return EXIT_FAILURE;
+                        }
+
+                        sourceTrackAudioDataSource = sourceTrack->audioDataSource;
+                    }
+
+                    if (audioDataSourceComputed == NULL) {
+                        audioDataSourceComputed = AudioDataSource_createEmpty(sourceTrackAudioDataSource);
+                    }
+
+                    if (sourceTrackItem->toSubtract) {
+                        AudioDataSource_subSamples(audioDataSourceComputed, sourceTrackAudioDataSource);
+                    } else {
+                        AudioDataSource_addSamples(audioDataSourceComputed, sourceTrackAudioDataSource);
+                    }
+                }
+
+                if (!AudioFile_writeAll(outputFilePath, &outputAudioFileFormat, &spleeterSampleType,
+                        (void *)audioDataSourceComputed->sampleValues, audioDataSourceComputed->sampleCountPerChannel)) {
+                    _ftprintf(stderr, _T("Error: Failed to write output file \"%s\".\n"), outputFilePath);
+                    return EXIT_FAILURE;
+                }
+
+                Common_updateProgress(STAGE_AUDIO_FILE_WRITER, (i + 1), trackList.trackItemCount);
+
+                AudioDataSource_free(&audioDataSourceComputed);
+            }
         }
-
-        if (!AudioFile_writeAll(outputFilePath, &outputAudioFileFormat, &spleeterSampleType,
-                (void *)track->audioDataSource->sampleValues, track->audioDataSource->sampleCountPerChannel)) {
-            _ftprintf(stderr, _T("Error: Failed to write output file \"%s\".\n"), outputFilePath);
-            return EXIT_FAILURE;
-        }
-
-        Common_updateProgress(STAGE_AUDIO_FILE_WRITER, (i + 1), result->trackCount);
     }
 
     SpleeterProcessorResult_free(&result);

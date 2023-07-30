@@ -59,9 +59,11 @@ typedef struct {
 } AudioDataSource;
 
 /**
- * 创建一个空的 AudioDataSource 结构体
+ * 分配内存空间，创建一个空的 AudioDataSource 结构体
+ *
+ * @return  返回所创建的 AudioDataSource 结构体
  */
-AudioDataSource *AudioDataSource_create(void);
+AudioDataSource *AudioDataSource_alloc(void);
 
 /**
  * 释放 AudioDataSource 结构体和其中的文件名、音频数据所占用的内存空间
@@ -69,6 +71,31 @@ AudioDataSource *AudioDataSource_create(void);
  * @param   objPtr                  指向 AudioDataSource 结构体的指针的指针
  */
 void AudioDataSource_free(AudioDataSource **objPtr);
+
+/**
+ * 创建一个与 objRef 的信息相同，但样本值都为零的 AudioDataSource
+ *
+ * @param   objRef                  指向参考 AudioDataSource 结构体的指针
+ *
+ * @return  返回所创建的 AudioDataSource 结构体
+ */
+AudioDataSource *AudioDataSource_createEmpty(AudioDataSource *objRef);
+
+/**
+ * 将两个 AudioDataSource 中的样本值相加 (obj = obj + obj2)
+ *
+ * @param   obj                     指向第 1 个 AudioDataSource 结构体的指针
+ * @param   obj2                    指向第 2 个 AudioDataSource 结构体的指针
+ */
+void AudioDataSource_addSamples(AudioDataSource *obj, AudioDataSource *obj2);
+
+/**
+ * 将两个 AudioDataSource 中的样本值相减 (obj = obj - obj2)
+ *
+ * @param   obj                     指向第 1 个 AudioDataSource 结构体的指针
+ * @param   obj2                    指向第 2 个 AudioDataSource 结构体的指针
+ */
+void AudioDataSource_subSamples(AudioDataSource *obj, AudioDataSource *obj2);
 
 /**
  * 打开一个音频文件，并读取所有样本值
