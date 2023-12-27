@@ -69,6 +69,13 @@ typedef struct {
     int                             trackCount;
 } SpleeterProcessorResult;
 
+/**
+ * 根据 Spleeter 模型的目录名称获取模型信息
+ *
+ * @param   modelName           Spleeter 模型的目录名称 ("2stems", "4stems", "5stems-16khz" 等)
+ *
+ * @return  如果找到模型信息则返回指向 SpleeterModelInfo 结构体的指针，未找到则返回 NULL
+ */
 const SpleeterModelInfo *SpleeterProcessor_getModelInfo(const TCHAR *modelName);
 
 /**

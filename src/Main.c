@@ -49,8 +49,15 @@ static void _displayHelp(int argc, TCHAR *argv[]) {
     _tprintf(_T("Options:\n"));
     _tprintf(_T("    -m, --model         Spleeter model name, i.e. the folder name in models folder\n"));
     _tprintf(_T("                        (2stems, 4stems, 5stems-22khz, ..., default: 2stems)\n"));
-    _tprintf(_T("    -o, --output        Output base file name\n"));
-    _tprintf(_T("                        (in the format of filename.ext, default: <input_file_path>)\n"));
+    _tprintf(_T("    -o, --output        Output file path format\n"));
+    _tprintf(_T("                        Default is empty, which is equivalent to $(DirPath)\\$(BaseName).$(TrackName).$(Ext)\n"));
+    _tprintf(_T("                        Supported variable names and example values:\n"));
+    _tprintf(_T("                            $(FullPath)                 D:\\Music\\test.mp3\n"));
+    _tprintf(_T("                            $(DirPath)                  D:\\Music\n"));
+    _tprintf(_T("                            $(FileName)                 test.mp3\n"));
+    _tprintf(_T("                            $(BaseName)                 test\n"));
+    _tprintf(_T("                            $(Ext)                      mp3\n"));
+    _tprintf(_T("                            $(TrackName)                vocals,drums,bass,...\n"));
     _tprintf(_T("    -b, --bitrate       Output file bitrate\n"));
     _tprintf(_T("                        (128k, 192000, 256k, ..., default: 256k)\n"));
     _tprintf(_T("    -t, --tracks        Output track list (comma separated track names)\n"));
@@ -130,6 +137,142 @@ static bool _addExtraExtensionBeforeOriginalExtension(TCHAR *destFilePathBuffer,
 }
 
 /**
+ * 根据输出文件路径格式字符串生成指定轨道对应的输出文件路径
+ *
+ * @param   dest                    用于存储所生成指定轨道对应的输出文件路径的缓冲区 (大小为 FILE_PATH_MAX_SIZE)
+ * @param   src                     输出文件路径格式字符串
+ * @param   inputFileFullPath       输入文件完整路径
+ * @param   trackName               当前轨道名称
+ * @param   outputTrackCount        要输出的所有轨道的数量
+ *
+ * @return  成功时返回 true, 失败时返回 false
+ */
+static bool _convertOutputFilePathFormatString(TCHAR *dest, const TCHAR *src,
+        const TCHAR *inputFileFullPath, const TCHAR *trackName, int outputTrackCount) {
+    TCHAR *destPtr = dest;
+    TCHAR *destEnd = dest + FILE_PATH_MAX_SIZE;
+
+    size_t srcLength = _tcsnlen(src, FILE_PATH_MAX_SIZE);
+    if (srcLength >= FILE_PATH_MAX_SIZE) {
+        _ftprintf(stderr, _T("Error: The specified output file path format \"%s\" is too long.\n"), src);
+        return false;
+    }
+    const TCHAR *srcEnd = src + srcLength;
+
+    bool containsTrackName = false;
+
+    const TCHAR *srcPtr = src;
+    while (srcPtr < srcEnd) {
+        if ((*srcPtr == _T('$')) && ((srcPtr + 1) < srcEnd) && (*(srcPtr + 1) == _T('('))) {
+            // 遇到了 $(VariableName) 形式变量名的起始部分 "$("
+
+            const TCHAR *variableNameBegin = srcPtr + 2;
+            const TCHAR *variableNameEnd = _tcschr(variableNameBegin, _T(')'));
+            if (variableNameEnd != NULL) {
+                // 查找到了变量名的结束部分 ")"
+
+                // 计算变量名的长度
+                size_t variableNameLength = variableNameEnd - variableNameBegin;
+
+                // 复制变量名到 variableNameBuffer 中，用于后续字符串比较
+                TCHAR variableNameBuffer[FILE_PATH_MAX_SIZE] = { _T('\0') };
+                memcpy(variableNameBuffer, variableNameBegin, variableNameLength * sizeof(TCHAR));
+                variableNameBuffer[FILE_PATH_MAX_SIZE - 1] = _T('\0');
+
+                // 将对应的变量值复制到 variableValueBuffer 中
+                TCHAR variableValueBuffer[FILE_PATH_MAX_SIZE] = { _T('\0') };
+                if (_tcscmp(_T("FullPath"), variableNameBuffer) == 0) {
+                    // 输入文件的完整路径
+                    _tcsncpy(variableValueBuffer, inputFileFullPath, (FILE_PATH_MAX_SIZE - 1));
+                } else if (_tcscmp(_T("DirPath"), variableNameBuffer) == 0) {
+                    // 输入文件所在目录的路径
+                    _tcsncpy(variableValueBuffer, inputFileFullPath, (FILE_PATH_MAX_SIZE - 1));
+                    if (!PathRemoveFileSpec(variableValueBuffer)) {
+                        _ftprintf(stderr, _T("Error: Failed to call PathRemoveFileSpec()\n"));
+                        return false;
+                    }
+                } else if (_tcscmp(_T("FileName"), variableNameBuffer) == 0) {
+                    TCHAR *inputFileName = PathFindFileName(inputFileFullPath);
+                    if (inputFileName != inputFileFullPath) {
+                        // 输入文件的文件名
+                        _tcsncpy(variableValueBuffer, inputFileName, (FILE_PATH_MAX_SIZE - 1));
+                    } else {
+                        // 查找输入文件路径中的文件名失败
+                        variableValueBuffer[0] = _T('\0');
+                    }
+                } else if (_tcscmp(_T("BaseName"), variableNameBuffer) == 0) {
+                    TCHAR *inputFileName = PathFindFileName(inputFileFullPath);
+                    if (inputFileName != inputFileFullPath) {
+                        // 输入文件的文件名去除扩展名后的结果
+                        _tcsncpy(variableValueBuffer, inputFileName, (FILE_PATH_MAX_SIZE - 1));
+                        TCHAR *fileExtension = PathFindExtension(variableValueBuffer);
+                        if (*fileExtension == '.') {
+                            *fileExtension = _T('\0');
+                        }
+                    } else {
+                        // 查找输入文件路径中的文件名失败
+                        variableValueBuffer[0] = _T('\0');
+                    }
+                } else if (_tcscmp(_T("Ext"), variableNameBuffer) == 0) {
+                    TCHAR *inputFileExtension = PathFindExtension(inputFileFullPath);
+                    if (*inputFileExtension == '.') {
+                        // 输入文件的扩展名
+                        _tcsncpy(variableValueBuffer, inputFileExtension + 1, (FILE_PATH_MAX_SIZE - 1));
+                    } else {
+                        // 查找输入文件路径中的扩展名失败
+                        variableValueBuffer[0] = _T('\0');
+                    }
+                } else if (_tcscmp(_T("TrackName"), variableNameBuffer) == 0) {
+                    // 轨道名称
+                    _tcsncpy(variableValueBuffer, trackName, (FILE_PATH_MAX_SIZE - 1));
+
+                    containsTrackName = true;
+                } else {
+                    // 不合法的变量名
+                    _ftprintf(stderr, _T("Error: Unrecognized variable name \"%s\"\n"),
+                            variableNameBuffer);
+                    return false;
+                }
+
+                variableValueBuffer[FILE_PATH_MAX_SIZE - 1] = _T('\0');
+                size_t variableValueLength = _tcsclen(variableValueBuffer);
+                if ((destPtr + variableValueLength) >= destEnd) {
+                    // 变量值的长度超过 FILE_PATH_MAX_SIZE 的限制
+                    _ftprintf(stderr, _T("Error: The variable value \"%s\" is too long\n"), variableValueBuffer);
+                    return false;
+                }
+                memcpy(destPtr, variableValueBuffer, variableValueLength * sizeof(TCHAR));
+                destPtr += variableValueLength;
+                srcPtr += 2 + variableNameLength + 1;   // 跳过已处理完的 $(VariableName) 形式的变量名
+                continue;
+            }
+        }
+
+        if ((destPtr + 1) >= destEnd) {
+            // dest 缓冲区已满
+            _ftprintf(stderr, _T("Error: The concatenating output file path is already too long.\n"));
+            return false;
+        }
+        *(destPtr++) = *(srcPtr++);
+    }
+
+    if ((outputTrackCount > 1) && !containsTrackName) {
+        // 输出文件名格式字符串中不包含轨道名称
+        _ftprintf(stderr, _T("Error: The output file path format must contain a \"$(TrackName)\" when output multiple tracks.\n"));
+        return false;
+    }
+
+    if ((destPtr + 1) >= destEnd) {
+        // dest 缓冲区已满
+        _ftprintf(stderr, _T("Error: The concatenating output file path is already too long.\n"));
+        return false;
+    }
+    *(destPtr++) = _T('\0');
+
+    return true;
+}
+
+/**
  * 检查指定的输入文件是否存在和可读
  *
  * @param   inputFilePath       要检查输入文件的路径
@@ -155,22 +298,30 @@ static bool _checkInputFilePath(const TCHAR *inputFilePath) {
 /**
  * 获取输出文件路径
  *
- * @param   outputFilePathBuffer                用于存储输出文件路径的缓冲区
- * @param   outputFilePathBufferCharCount       outputFilePathBuffer 缓冲区的大小 (可容纳字符数)
- * @param   outputBaseFilePath                  输出文件基础路径
- * @param   trackName                           轨道名称
+ * @param   outputFilePathBuffer    用于存储输出文件路径的缓冲区
+ * @param   outputFilePathFormat    输出文件路径格式字符串 (为空时将直接在 inputFileFullPath 的原有扩展名前添加 outputTrackName)
+ * @param   outputTrackCount        输出轨道的总数量
+ * @param   outputTrackName         当前输出轨道名称
+ * @param   inputFileFullPath       输入音频文件的完整路径
  *
  * @return  成功时返回 true, 失败时返回 false
  */
-static bool _getOutputFilePath(TCHAR *outputFilePathBuffer, size_t outputFilePathBufferCharCount,
-        const TCHAR *outputBaseFilePath, const TCHAR *trackName) {
-    // 检查 outputBaseFilePath 加上 trackName 后是否超长
-    if (!_addExtraExtensionBeforeOriginalExtension(outputFilePathBuffer, outputFilePathBufferCharCount,
-            outputBaseFilePath, trackName)) {
-        _ftprintf(stderr, _T("Error: The output file path for track \"%s\" is too long.\n"), trackName);
-        return false;
+static bool _getOutputFilePath(TCHAR *outputFilePathBuffer, const TCHAR *outputFilePathFormat,
+        int outputTrackCount, const TCHAR *outputTrackName, const TCHAR *inputFileFullPath) {
+    if (_tcsclen(outputFilePathFormat) == 0) {
+        // 检查 inputFileFullPath 加上 trackName 后是否超长
+        if (!_addExtraExtensionBeforeOriginalExtension(outputFilePathBuffer, FILE_PATH_MAX_SIZE,
+                inputFileFullPath, outputTrackName)) {
+            _ftprintf(stderr, _T("Error: The output file path for track \"%s\" is too long.\n"), outputTrackName);
+            return false;
+        }
+        outputFilePathBuffer[FILE_PATH_MAX_SIZE - 1] = _T('\0');
+    } else {
+        if (!_convertOutputFilePathFormatString(outputFilePathBuffer, outputFilePathFormat,
+                inputFileFullPath, outputTrackName, outputTrackCount)) {
+            return false;
+        }
     }
-    outputFilePathBuffer[outputFilePathBufferCharCount - 1] = _T('\0');
 
     return true;
 }
@@ -383,6 +534,31 @@ static bool _tryParseTrackList(TrackList *parsedTrackList, const TCHAR *optionVa
     return true;
 }
 
+/**
+ * 检查已选择的 Spleeter 模型中是否包含指定名称的输出轨道
+ *
+ * @param   modelInfo       指向 SpleeterModelInfo 结构体的指针
+ * @param   trackName       要检查的轨道名称
+ *
+ * @return  如果包含则返回 true, 否则返回 false
+ */
+static bool _checkSpleeterModelTrackName(const SpleeterModelInfo *modelInfo, const TCHAR *trackName) {
+    bool foundTrackName = false;
+    for (int i = 0; i < modelInfo->outputCount; i++) {
+        if (_tcscmp(trackName, modelInfo->trackNames[i]) == 0) {
+            foundTrackName = true;
+            break;
+        }
+    }
+
+    if (!foundTrackName) {
+        _ftprintf(stderr, _T("Error: Specified track name \"%s\" does not exist in %s model.\n"), trackName, modelInfo->basicName);
+        return false;
+    }
+
+    return true;
+}
+
 int _tmain(int argc, TCHAR *argv[]) {
     setlocale(LC_ALL, "");
 
@@ -406,6 +582,9 @@ int _tmain(int argc, TCHAR *argv[]) {
         argv[argc++] = _T("--tracks");
         argv[argc++] = _T("vocals,vocals_and_drums=vocals+drums,vocals_removed_1=input-vocals,")
                 _T("vocals_removed_2=drums+bass+other,invert_test=-input+bass-other");
+
+        argv[argc++] = _T("--output");
+        argv[argc++] = _T("$(DirPath)\\$(BaseName)-separated-$(TrackName).$(Ext)");
     }
 #endif
 
@@ -417,7 +596,7 @@ int _tmain(int argc, TCHAR *argv[]) {
 #endif
 
     TCHAR inputFilePath[FILE_PATH_MAX_SIZE] = { _T('\0') };
-    TCHAR outputBaseFilePath[FILE_PATH_MAX_SIZE] = { _T('\0') };
+    TCHAR outputFilePathFormat[FILE_PATH_MAX_SIZE] = { _T('\0') };
     TCHAR modelName[FILE_PATH_MAX_SIZE] = { _T('\0') };
 
     int outputFileBitrate = 0;
@@ -480,15 +659,15 @@ int _tmain(int argc, TCHAR *argv[]) {
             case _T('o'):
                 // -o, --output
                 if (optarg != NULL) {
-                    // 检查输出文件基础路径的长度
+                    // 检查输出文件路径格式字符串的长度
                     if (_tcsclen(optarg) > (FILE_PATH_MAX_SIZE - 1)) {
-                        _ftprintf(stderr, _T("Error: The specified output base file name \"%s\" is too long (%d > %d characters).\n"),
+                        _ftprintf(stderr, _T("Error: The specified output file path format \"%s\" is too long (%d > %d characters).\n"),
                                 optarg, (int)_tcsclen(optarg), (int)(FILE_PATH_MAX_SIZE - 1));
                         return EXIT_FAILURE;
                     }
 
-                    _tcsncpy(outputBaseFilePath, optarg, (FILE_PATH_MAX_SIZE - 1));
-                    outputBaseFilePath[FILE_PATH_MAX_SIZE - 1] = _T('\0');
+                    _tcsncpy(outputFilePathFormat, optarg, (FILE_PATH_MAX_SIZE - 1));
+                    outputFilePathFormat[FILE_PATH_MAX_SIZE - 1] = _T('\0');
                 }
                 break;
 
@@ -607,17 +786,10 @@ int _tmain(int argc, TCHAR *argv[]) {
         return EXIT_FAILURE;
     }
 
-    // 如果未指定输出文件基础路径，则使用默认值
-    if (_tcsclen(outputBaseFilePath) == 0) {
-        // 默认使用 <input_file_path>
-        _tcsncpy(outputBaseFilePath, inputFilePath, (FILE_PATH_MAX_SIZE - 1));
-        outputBaseFilePath[FILE_PATH_MAX_SIZE - 1] = _T('\0');
-    }
-
-    // 检查是否已指定输出文件基础路径
-    if (_tcsclen(outputBaseFilePath) == 0) {
-        _ftprintf(stderr, _T("Error: Not specified the output base file path.\n"));
-        return EXIT_FAILURE;
+    // 如果未指定输出文件路径格式字符串，则使用默认值
+    if (_tcsclen(outputFilePathFormat) == 0) {
+        _tcsncpy(outputFilePathFormat, _T(""), (FILE_PATH_MAX_SIZE - 1));
+        outputFilePathFormat[FILE_PATH_MAX_SIZE - 1] = _T('\0');
     }
 
     // 如果未指定输出文件的 bitrate, 则使用默认值
@@ -628,26 +800,79 @@ int _tmain(int argc, TCHAR *argv[]) {
     ////////////////////////////////////////////////// 检查输入文件 //////////////////////////////////////////////////
 
     _tprintf(_T("Input file:\n"));
-    _tprintf(_T("%s\n"), inputFilePath);
-    _tprintf(_T("\n"));
 
     if (!_checkInputFilePath(inputFilePath)) {
         return EXIT_FAILURE;
     }
 
-    ////////////////////////////////////////////////// 检查输出文件 //////////////////////////////////////////////////
+    TCHAR inputFileFullPath[FILE_PATH_MAX_SIZE] = { _T('\0') };
+
+    if (GetFullPathName(inputFilePath, FILE_PATH_MAX_SIZE, inputFileFullPath, NULL) >= FILE_PATH_MAX_SIZE) {
+        _ftprintf(stderr, _T("Error: Failed to get the full path of input file \"%s\".\n"), inputFilePath);
+        return EXIT_FAILURE;
+    }
+
+    _tprintf(_T("%s\n"), inputFileFullPath);
+    _tprintf(_T("\n"));
+
+    ////////////////////////////////////////////////// 检查轨道名称和输出文件路径 //////////////////////////////////////////////////
 
     _tprintf(_T("Output files:\n"));
-    for (int i = 0; i < modelInfo->outputCount; i++) {
-        TCHAR outputFilePath[FILE_PATH_MAX_SIZE] = { _T('\0') };
-        if (!_getOutputFilePath(outputFilePath, FILE_PATH_MAX_SIZE, outputBaseFilePath, modelInfo->trackNames[i])) {
-            return EXIT_FAILURE;
+    if (trackList.trackItemCount == 0) {
+        // 未指定 track list, 正常输出
+
+        for (int i = 0; i < modelInfo->outputCount; i++) {
+            TCHAR outputFilePath[FILE_PATH_MAX_SIZE] = { _T('\0') };
+            if (!_getOutputFilePath(outputFilePath, outputFilePathFormat,
+                    modelInfo->outputCount, modelInfo->trackNames[i], inputFileFullPath)) {
+                return EXIT_FAILURE;
+            }
+
+            _tprintf(_T("%s\n"), outputFilePath);
+
+            if (!_checkOutputFilePath(outputFilePath, overwriteFlag)) {
+                return EXIT_FAILURE;
+            }
         }
+    } else {
+        // 指定了 track list
 
-        _tprintf(_T("%s\n"), outputFilePath);
+        for (int i = 0; i < trackList.trackItemCount; i++) {
+            TrackItem *trackItem = &trackList.trackItems[i];
 
-        if (!_checkOutputFilePath(outputFilePath, overwriteFlag)) {
-            return EXIT_FAILURE;
+            if (trackItem->sourceTrackItemCount == 0) {
+                // 该 TrackItem 仅选择了一条已知的轨道，不涉及轨道更名或运算
+
+                // 检查轨道名称是否存在
+                if (!_checkSpleeterModelTrackName(modelInfo, trackItem->trackName)) {
+                    return EXIT_FAILURE;
+                }
+            } else {
+                // 该 TrackItem 指定了 source track list, 涉及轨道更名或运算
+
+                // 检查源轨道名称是否存在
+                for (int j = 0; j < trackItem->sourceTrackItemCount; j++) {
+                    SourceTrackItem *sourceTrackItem = &trackItem->sourceTrackItems[j];
+                    if (_tcscmp(sourceTrackItem->trackName, _T("input")) == 0) {
+                        continue;
+                    }
+                    if (!_checkSpleeterModelTrackName(modelInfo, sourceTrackItem->trackName)) {
+                        return EXIT_FAILURE;
+                    }
+                }
+            }
+
+            TCHAR outputFilePath[FILE_PATH_MAX_SIZE] = { _T('\0') };
+            if (!_getOutputFilePath(outputFilePath, outputFilePathFormat,
+                    trackList.trackItemCount, trackItem->trackName, inputFileFullPath)) {
+                return EXIT_FAILURE;
+            }
+
+            _tprintf(_T("%s\n"), outputFilePath);
+
+            if (!_checkOutputFilePath(outputFilePath, overwriteFlag)) {
+                return EXIT_FAILURE;
+            }
         }
     }
     _tprintf(_T("\n"));
@@ -667,7 +892,7 @@ int _tmain(int argc, TCHAR *argv[]) {
 
     // 读取音频文件
 
-    AudioDataSource *audioDataSourceStereo = AudioFile_readAll(inputFilePath, &spleeterSampleType);
+    AudioDataSource *audioDataSourceStereo = AudioFile_readAll(inputFileFullPath, &spleeterSampleType);
 
     // 使用 Spleeter 进行处理
 
@@ -688,7 +913,8 @@ int _tmain(int argc, TCHAR *argv[]) {
             SpleeterProcessorResultTrack *track = &result->trackList[i];
 
             TCHAR outputFilePath[FILE_PATH_MAX_SIZE] = { _T('\0') };
-            if (!_getOutputFilePath(outputFilePath, FILE_PATH_MAX_SIZE, outputBaseFilePath, track->trackName)) {
+            if (!_getOutputFilePath(outputFilePath, outputFilePathFormat,
+                    result->trackCount, track->trackName, inputFileFullPath)) {
                 return EXIT_FAILURE;
             }
 
@@ -720,7 +946,8 @@ int _tmain(int argc, TCHAR *argv[]) {
                 }
 
                 TCHAR outputFilePath[FILE_PATH_MAX_SIZE] = { _T('\0') };
-                if (!_getOutputFilePath(outputFilePath, FILE_PATH_MAX_SIZE, outputBaseFilePath, track->trackName)) {
+                if (!_getOutputFilePath(outputFilePath, outputFilePathFormat,
+                        trackList.trackItemCount, track->trackName, inputFileFullPath)) {
                     return EXIT_FAILURE;
                 }
 
@@ -739,7 +966,8 @@ int _tmain(int argc, TCHAR *argv[]) {
                 // 该 TrackItem 指定了 source track list, 涉及轨道更名或运算
 
                 TCHAR outputFilePath[FILE_PATH_MAX_SIZE] = { _T('\0') };
-                if (!_getOutputFilePath(outputFilePath, FILE_PATH_MAX_SIZE, outputBaseFilePath, trackItem->trackName)) {
+                if (!_getOutputFilePath(outputFilePath, outputFilePathFormat,
+                        trackList.trackItemCount, trackItem->trackName, inputFileFullPath)) {
                     return EXIT_FAILURE;
                 }
 
