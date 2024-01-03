@@ -36,68 +36,76 @@
 #include "AudioFileReader.h"
 #include "SpleeterProcessor.h"
 
+#define MSG_INFO(fmt, ...)     do {     \
+    _tprintf(fmt, __VA_ARGS__);         \
+} while (0)
+
+#define MSG_ERROR(fmt, ...)     do {                        \
+    _ftprintf(stderr, _T("\nError: ") fmt, __VA_ARGS__);    \
+} while (0)
+
 /**
  * 显示帮助文本
  */
 static void _displayHelp(int argc, TCHAR *argv[]) {
-    _tprintf(_T("%s %s\n"), _T(PROGRAM_NAME), _T(PROGRAM_VERSION));
-    _tprintf(_T("\n"));
+    MSG_INFO(_T("%s %s\n"), _T(PROGRAM_NAME), _T(PROGRAM_VERSION));
+    MSG_INFO(_T("\n"));
 
-    _tprintf(_T("Usage: %s [options] <input_file_path>\n"), argv[0]);
-    _tprintf(_T("\n"));
+    MSG_INFO(_T("Usage: %s [options] <input_file_path>\n"), argv[0]);
+    MSG_INFO(_T("\n"));
 
-    _tprintf(_T("Options:\n"));
-    _tprintf(_T("    -m, --model         Spleeter model name, i.e. the folder name in models folder\n"));
-    _tprintf(_T("                        (2stems, 4stems, 5stems-22khz, ..., default: 2stems)\n"));
-    _tprintf(_T("    -o, --output        Output file path format\n"));
-    _tprintf(_T("                        Default is empty, which is equivalent to $(DirPath)\\$(BaseName).$(TrackName).$(Ext)\n"));
-    _tprintf(_T("                        Supported variable names and example values:\n"));
-    _tprintf(_T("                            $(FullPath)                 D:\\Music\\test.mp3\n"));
-    _tprintf(_T("                            $(DirPath)                  D:\\Music\n"));
-    _tprintf(_T("                            $(FileName)                 test.mp3\n"));
-    _tprintf(_T("                            $(BaseName)                 test\n"));
-    _tprintf(_T("                            $(Ext)                      mp3\n"));
-    _tprintf(_T("                            $(TrackName)                vocals,drums,bass,...\n"));
-    _tprintf(_T("    -b, --bitrate       Output file bitrate\n"));
-    _tprintf(_T("                        (128k, 192000, 256k, ..., default: 256k)\n"));
-    _tprintf(_T("    -t, --tracks        Output track list (comma separated track names)\n"));
-    _tprintf(_T("                        Default value is empty to output all tracks\n"));
-    _tprintf(_T("                        Available track names:\n"));
-    _tprintf(_T("                            input, vocals, accompaniment, drums, bass, piano, other\n"));
-    _tprintf(_T("                        Examples:\n"));
-    _tprintf(_T("                            accompaniment               Output accompaniment track only\n"));
-    _tprintf(_T("                            vocals,drums                Output vocals and drums tracks\n"));
-    _tprintf(_T("                            mixed=vocals+drums          Mix vocals and drums as \"mixed\" track\n"));
-    _tprintf(_T("                            vocals,acc=input-vocals     Output vocals and accompaniment for 4stems model\n"));
-    _tprintf(_T("    --overwrite         Overwrite when the target output file exists\n"));
-    _tprintf(_T("    --verbose           Display detailed processing information\n"));
-    _tprintf(_T("    --debug             Display debug information\n"));
-    _tprintf(_T("    -h, --help          Display this help and exit\n"));
-    _tprintf(_T("    -v, --version       Display program version and exit\n"));
-    _tprintf(_T("\n"));
+    MSG_INFO(_T("Options:\n"));
+    MSG_INFO(_T("    -m, --model         Spleeter model name, i.e. the folder name in models folder\n"));
+    MSG_INFO(_T("                        (2stems, 4stems, 5stems-22khz, ..., default: 2stems)\n"));
+    MSG_INFO(_T("    -o, --output        Output file path format\n"));
+    MSG_INFO(_T("                        Default is empty, which is equivalent to $(DirPath)\\$(BaseName).$(TrackName).$(Ext)\n"));
+    MSG_INFO(_T("                        Supported variable names and example values:\n"));
+    MSG_INFO(_T("                            $(FullPath)                 D:\\Music\\test.mp3\n"));
+    MSG_INFO(_T("                            $(DirPath)                  D:\\Music\n"));
+    MSG_INFO(_T("                            $(FileName)                 test.mp3\n"));
+    MSG_INFO(_T("                            $(BaseName)                 test\n"));
+    MSG_INFO(_T("                            $(Ext)                      mp3\n"));
+    MSG_INFO(_T("                            $(TrackName)                vocals,drums,bass,...\n"));
+    MSG_INFO(_T("    -b, --bitrate       Output file bitrate\n"));
+    MSG_INFO(_T("                        (128k, 192000, 256k, ..., default: 256k)\n"));
+    MSG_INFO(_T("    -t, --tracks        Output track list (comma separated track names)\n"));
+    MSG_INFO(_T("                        Default value is empty to output all tracks\n"));
+    MSG_INFO(_T("                        Available track names:\n"));
+    MSG_INFO(_T("                            input, vocals, accompaniment, drums, bass, piano, other\n"));
+    MSG_INFO(_T("                        Examples:\n"));
+    MSG_INFO(_T("                            accompaniment               Output accompaniment track only\n"));
+    MSG_INFO(_T("                            vocals,drums                Output vocals and drums tracks\n"));
+    MSG_INFO(_T("                            mixed=vocals+drums          Mix vocals and drums as \"mixed\" track\n"));
+    MSG_INFO(_T("                            vocals,acc=input-vocals     Output vocals and accompaniment for 4stems model\n"));
+    MSG_INFO(_T("    --overwrite         Overwrite when the target output file exists\n"));
+    MSG_INFO(_T("    --verbose           Display detailed processing information\n"));
+    MSG_INFO(_T("    --debug             Display debug information\n"));
+    MSG_INFO(_T("    -h, --help          Display this help and exit\n"));
+    MSG_INFO(_T("    -v, --version       Display program version and exit\n"));
+    MSG_INFO(_T("\n"));
 
-    _tprintf(_T("Examples:\n"));
-    _tprintf(_T("    %s -m 2stems song.mp3\n"), argv[0]);
-    _tprintf(_T("    - Splits song.mp3 into 2 tracks: vocals, accompaniment\n"));
-    _tprintf(_T("    - Outputs 2 files: song.vocals.mp3, song.accompaniment.mp3\n"));
-    _tprintf(_T("    - Output file format is same as input, using default bitrate 256kbps\n"));
-    _tprintf(_T("\n"));
-    _tprintf(_T("    %s -m 4stems -o result.m4a -b 192k song.mp3\n"), argv[0]);
-    _tprintf(_T("    - Splits song.mp3 into 4 tracks: vocals, drums, bass, other\n"));
-    _tprintf(_T("    - Outputs 4 files: result.vocals.m4a, result.drums.m4a, ...\n"));
-    _tprintf(_T("    - Output file format is M4A, using bitrate 192kbps\n"));
-    _tprintf(_T("\n"));
-    _tprintf(_T("    %s --model 5stems-22khz --bitrate 320000 song.mp3\n"), argv[0]);
-    _tprintf(_T("    - Long option example\n"));
-    _tprintf(_T("    - Using the model of which upper frequency limit is 22kHz\n"));
-    _tprintf(_T("    - Splits song.mp3 into 5 tracks\n"));
+    MSG_INFO(_T("Examples:\n"));
+    MSG_INFO(_T("    %s -m 2stems song.mp3\n"), argv[0]);
+    MSG_INFO(_T("    - Splits song.mp3 into 2 tracks: vocals, accompaniment\n"));
+    MSG_INFO(_T("    - Outputs 2 files: song.vocals.mp3, song.accompaniment.mp3\n"));
+    MSG_INFO(_T("    - Output file format is same as input, using default bitrate 256kbps\n"));
+    MSG_INFO(_T("\n"));
+    MSG_INFO(_T("    %s -m 4stems -o result.m4a -b 192k song.mp3\n"), argv[0]);
+    MSG_INFO(_T("    - Splits song.mp3 into 4 tracks: vocals, drums, bass, other\n"));
+    MSG_INFO(_T("    - Outputs 4 files: result.vocals.m4a, result.drums.m4a, ...\n"));
+    MSG_INFO(_T("    - Output file format is M4A, using bitrate 192kbps\n"));
+    MSG_INFO(_T("\n"));
+    MSG_INFO(_T("    %s --model 5stems-22khz --bitrate 320000 song.mp3\n"), argv[0]);
+    MSG_INFO(_T("    - Long option example\n"));
+    MSG_INFO(_T("    - Using the model of which upper frequency limit is 22kHz\n"));
+    MSG_INFO(_T("    - Splits song.mp3 into 5 tracks\n"));
 }
 
 /**
  * 显示程序版本号
  */
 static void _displayVersion(void) {
-    _tprintf(_T("%s\n"), _T(PROGRAM_VERSION));
+    MSG_INFO(_T("%s\n"), _T(PROGRAM_VERSION));
 }
 
 /**
@@ -154,7 +162,7 @@ static bool _convertOutputFilePathFormatString(TCHAR *dest, const TCHAR *src,
 
     size_t srcLength = _tcsnlen(src, FILE_PATH_MAX_SIZE);
     if (srcLength >= FILE_PATH_MAX_SIZE) {
-        _ftprintf(stderr, _T("Error: The specified output file path format \"%s\" is too long.\n"), src);
+        MSG_ERROR(_T("The specified output file path format \"%s\" is too long.\n"), src);
         return false;
     }
     const TCHAR *srcEnd = src + srcLength;
@@ -188,7 +196,7 @@ static bool _convertOutputFilePathFormatString(TCHAR *dest, const TCHAR *src,
                     // 输入文件所在目录的路径
                     _tcsncpy(variableValueBuffer, inputFileFullPath, (FILE_PATH_MAX_SIZE - 1));
                     if (!PathRemoveFileSpec(variableValueBuffer)) {
-                        _ftprintf(stderr, _T("Error: Failed to call PathRemoveFileSpec()\n"));
+                        MSG_ERROR(_T("Failed to call PathRemoveFileSpec()\n"));
                         return false;
                     }
                 } else if (_tcscmp(_T("FileName"), variableNameBuffer) == 0) {
@@ -229,7 +237,7 @@ static bool _convertOutputFilePathFormatString(TCHAR *dest, const TCHAR *src,
                     containsTrackName = true;
                 } else {
                     // 不合法的变量名
-                    _ftprintf(stderr, _T("Error: Unrecognized variable name \"%s\"\n"),
+                    MSG_ERROR(_T("Unrecognized variable name \"%s\"\n"),
                             variableNameBuffer);
                     return false;
                 }
@@ -238,7 +246,7 @@ static bool _convertOutputFilePathFormatString(TCHAR *dest, const TCHAR *src,
                 size_t variableValueLength = _tcsclen(variableValueBuffer);
                 if ((destPtr + variableValueLength) >= destEnd) {
                     // 变量值的长度超过 FILE_PATH_MAX_SIZE 的限制
-                    _ftprintf(stderr, _T("Error: The variable value \"%s\" is too long\n"), variableValueBuffer);
+                    MSG_ERROR(_T("The variable value \"%s\" is too long\n"), variableValueBuffer);
                     return false;
                 }
                 memcpy(destPtr, variableValueBuffer, variableValueLength * sizeof(TCHAR));
@@ -250,7 +258,7 @@ static bool _convertOutputFilePathFormatString(TCHAR *dest, const TCHAR *src,
 
         if ((destPtr + 1) >= destEnd) {
             // dest 缓冲区已满
-            _ftprintf(stderr, _T("Error: The concatenating output file path is already too long.\n"));
+            MSG_ERROR(_T("The concatenating output file path is already too long.\n"));
             return false;
         }
         *(destPtr++) = *(srcPtr++);
@@ -258,13 +266,13 @@ static bool _convertOutputFilePathFormatString(TCHAR *dest, const TCHAR *src,
 
     if ((outputTrackCount > 1) && !containsTrackName) {
         // 输出文件名格式字符串中不包含轨道名称
-        _ftprintf(stderr, _T("Error: The output file path format must contain a \"$(TrackName)\" when output multiple tracks.\n"));
+        MSG_ERROR(_T("The output file path format must contain a \"$(TrackName)\" when output multiple tracks.\n"));
         return false;
     }
 
     if ((destPtr + 1) >= destEnd) {
         // dest 缓冲区已满
-        _ftprintf(stderr, _T("Error: The concatenating output file path is already too long.\n"));
+        MSG_ERROR(_T("The concatenating output file path is already too long.\n"));
         return false;
     }
     *(destPtr++) = _T('\0');
@@ -282,13 +290,13 @@ static bool _convertOutputFilePathFormatString(TCHAR *dest, const TCHAR *src,
 static bool _checkInputFilePath(const TCHAR *inputFilePath) {
     // 检查指定的输入文件是否存在
     if (_taccess(inputFilePath, 0) == -1) {
-        _ftprintf(stderr, _T("Error: The specified input file \"%s\" does not exist.\n"), inputFilePath);
+        MSG_ERROR(_T("The specified input file \"%s\" does not exist.\n"), inputFilePath);
         return false;
     }
 
     // 检查指定的输入文件是否可读
     if (_taccess(inputFilePath, 4) == -1) {
-        _ftprintf(stderr, _T("Error: The specified input file \"%s\" cannot be read.\n"), inputFilePath);
+        MSG_ERROR(_T("The specified input file \"%s\" cannot be read.\n"), inputFilePath);
         return false;
     }
 
@@ -312,7 +320,7 @@ static bool _getOutputFilePath(TCHAR *outputFilePathBuffer, const TCHAR *outputF
         // 检查 inputFileFullPath 加上 trackName 后是否超长
         if (!_addExtraExtensionBeforeOriginalExtension(outputFilePathBuffer, FILE_PATH_MAX_SIZE,
                 inputFileFullPath, outputTrackName)) {
-            _ftprintf(stderr, _T("Error: The output file path for track \"%s\" is too long.\n"), outputTrackName);
+            MSG_ERROR(_T("The output file path for track \"%s\" is too long.\n"), outputTrackName);
             return false;
         }
         outputFilePathBuffer[FILE_PATH_MAX_SIZE - 1] = _T('\0');
@@ -339,13 +347,13 @@ static bool _checkOutputFilePath(const TCHAR *outputFilePath, int overwriteFlag)
     if (_taccess(outputFilePath, 0) != -1) {
         // 如果未指定 --overwrite 选项
         if (!overwriteFlag) {
-            _ftprintf(stderr, _T("Error: The output file \"%s\" has already existed. Add --overwrite option to ignore.\n"), outputFilePath);
+            MSG_ERROR(_T("The output file \"%s\" has already existed. Add --overwrite option to ignore.\n"), outputFilePath);
             return false;
         }
 
         // 如果 outputFilePath 不可写入
         if (_taccess(outputFilePath, 2) == -1) {
-            _ftprintf(stderr, _T("Error: The output file \"%s\" cannot be written.\n"), outputFilePath);
+            MSG_ERROR(_T("The output file \"%s\" cannot be written.\n"), outputFilePath);
             return false;
         }
     }
@@ -552,7 +560,7 @@ static bool _checkSpleeterModelTrackName(const SpleeterModelInfo *modelInfo, con
     }
 
     if (!foundTrackName) {
-        _ftprintf(stderr, _T("Error: Specified track name \"%s\" does not exist in %s model.\n"), trackName, modelInfo->basicName);
+        MSG_ERROR(_T("Specified track name \"%s\" does not exist in %s model.\n"), trackName, modelInfo->basicName);
         return false;
     }
 
@@ -590,9 +598,9 @@ int _tmain(int argc, TCHAR *argv[]) {
 
 #if defined(_DEBUG) && 0
     for (int i = 0; i < argc; i++) {
-        _tprintf(_T("argv[%d] = %s\n"), i, argv[i]);
+        MSG_INFO(_T("argv[%d] = %s\n"), i, argv[i]);
     }
-    _tprintf(_T("\n"));
+    MSG_INFO(_T("\n"));
 #endif
 
     TCHAR inputFilePath[FILE_PATH_MAX_SIZE] = { _T('\0') };
@@ -661,7 +669,7 @@ int _tmain(int argc, TCHAR *argv[]) {
                 if (optarg != NULL) {
                     // 检查输出文件路径格式字符串的长度
                     if (_tcsclen(optarg) > (FILE_PATH_MAX_SIZE - 1)) {
-                        _ftprintf(stderr, _T("Error: The specified output file path format \"%s\" is too long (%d > %d characters).\n"),
+                        MSG_ERROR(_T("The specified output file path format \"%s\" is too long (%d > %d characters).\n"),
                                 optarg, (int)_tcsclen(optarg), (int)(FILE_PATH_MAX_SIZE - 1));
                         return EXIT_FAILURE;
                     }
@@ -675,7 +683,7 @@ int _tmain(int argc, TCHAR *argv[]) {
                 // -b, --bitrate
                 if (optarg != NULL) {
                     if (!_tryParseBitrate(&outputFileBitrate, optarg)) {
-                        _ftprintf(stderr, _T("Error: Failed to parse the specified bitrate \"%s\".\n"), optarg);
+                        MSG_ERROR(_T("Failed to parse the specified bitrate \"%s\".\n"), optarg);
                         return EXIT_FAILURE;
                     }
                 }
@@ -685,7 +693,7 @@ int _tmain(int argc, TCHAR *argv[]) {
                 // -t, --tracks
                 if (optarg != NULL) {
                     if (!_tryParseTrackList(&trackList, optarg)) {
-                        _ftprintf(stderr, _T("Error: Failed to parse the specified track list \"%s\".\n"), optarg);
+                        MSG_ERROR(_T("Failed to parse the specified track list \"%s\".\n"), optarg);
                         return EXIT_FAILURE;
                     }
                 }
@@ -708,7 +716,7 @@ int _tmain(int argc, TCHAR *argv[]) {
                 break;
 
             default:
-                _ftprintf(stderr, _T("Error: Unknown error"));
+                MSG_ERROR(_T("Unknown error"));
                 return EXIT_FAILURE;
                 break;
         }
@@ -743,7 +751,7 @@ int _tmain(int argc, TCHAR *argv[]) {
 
         // 期望只剩余一个输入文件路径的参数未处理
         if ((optind + 1) != argc) {
-            _ftprintf(stderr, _T("Error: Specified more than one input file path.\n"));
+            MSG_ERROR(_T("Specified more than one input file path.\n"));
             return EXIT_FAILURE;
         }
 
@@ -751,7 +759,7 @@ int _tmain(int argc, TCHAR *argv[]) {
 
         // 检查输入文件路径的长度
         if (_tcsclen(nonOptionArgumentValue) > (FILE_PATH_MAX_SIZE - 1)) {
-            _ftprintf(stderr, _T("Error: The specified input file path \"%s\" is too long (%d > %d characters).\n"),
+            MSG_ERROR(_T("The specified input file path \"%s\" is too long (%d > %d characters).\n"),
                     nonOptionArgumentValue, (int)_tcsclen(nonOptionArgumentValue), (int)(FILE_PATH_MAX_SIZE - 1));
             return EXIT_FAILURE;
         }
@@ -761,7 +769,7 @@ int _tmain(int argc, TCHAR *argv[]) {
     } else {
         // 未指定输入文件路径
 
-        _ftprintf(stderr, _T("Error: Not specified the input file path.\n"));
+        MSG_ERROR(_T("Not specified the input file path.\n"));
         return EXIT_FAILURE;
     }
 
@@ -769,7 +777,7 @@ int _tmain(int argc, TCHAR *argv[]) {
 
     // 检查是否已指定输入文件路径
     if (_tcsclen(inputFilePath) == 0) {
-        _ftprintf(stderr, _T("Error: Not specified the input file path.\n"));
+        MSG_ERROR(_T("Not specified the input file path.\n"));
         return EXIT_FAILURE;
     }
 
@@ -782,7 +790,7 @@ int _tmain(int argc, TCHAR *argv[]) {
     // 检查所指定的 modelName 是否存在
     const SpleeterModelInfo *modelInfo = SpleeterProcessor_getModelInfo(modelName);
     if (modelInfo == NULL) {
-        _ftprintf(stderr, _T("Error: Unrecognized model name \"%s\".\n"), modelName);
+        MSG_ERROR(_T("Unrecognized model name \"%s\".\n"), modelName);
         return EXIT_FAILURE;
     }
 
@@ -799,8 +807,6 @@ int _tmain(int argc, TCHAR *argv[]) {
 
     ////////////////////////////////////////////////// 检查输入文件 //////////////////////////////////////////////////
 
-    _tprintf(_T("Input file:\n"));
-
     if (!_checkInputFilePath(inputFilePath)) {
         return EXIT_FAILURE;
     }
@@ -808,16 +814,17 @@ int _tmain(int argc, TCHAR *argv[]) {
     TCHAR inputFileFullPath[FILE_PATH_MAX_SIZE] = { _T('\0') };
 
     if (GetFullPathName(inputFilePath, FILE_PATH_MAX_SIZE, inputFileFullPath, NULL) >= FILE_PATH_MAX_SIZE) {
-        _ftprintf(stderr, _T("Error: Failed to get the full path of input file \"%s\".\n"), inputFilePath);
+        MSG_ERROR(_T("Failed to get the full path of input file \"%s\".\n"), inputFilePath);
         return EXIT_FAILURE;
     }
 
-    _tprintf(_T("%s\n"), inputFileFullPath);
-    _tprintf(_T("\n"));
+    MSG_INFO(_T("Input file:\n"));
+    MSG_INFO(_T("%s\n"), inputFileFullPath);
+    MSG_INFO(_T("\n"));
 
     ////////////////////////////////////////////////// 检查轨道名称和输出文件路径 //////////////////////////////////////////////////
 
-    _tprintf(_T("Output files:\n"));
+    MSG_INFO(_T("Output file(s):\n"));
     if (trackList.trackItemCount == 0) {
         // 未指定 track list, 正常输出
 
@@ -828,7 +835,7 @@ int _tmain(int argc, TCHAR *argv[]) {
                 return EXIT_FAILURE;
             }
 
-            _tprintf(_T("%s\n"), outputFilePath);
+            MSG_INFO(_T("%s\n"), outputFilePath);
 
             if (!_checkOutputFilePath(outputFilePath, overwriteFlag)) {
                 return EXIT_FAILURE;
@@ -868,14 +875,14 @@ int _tmain(int argc, TCHAR *argv[]) {
                 return EXIT_FAILURE;
             }
 
-            _tprintf(_T("%s\n"), outputFilePath);
+            MSG_INFO(_T("%s\n"), outputFilePath);
 
             if (!_checkOutputFilePath(outputFilePath, overwriteFlag)) {
                 return EXIT_FAILURE;
             }
         }
     }
-    _tprintf(_T("\n"));
+    MSG_INFO(_T("\n"));
 
     ////////////////////////////////////////////////// 开始处理 //////////////////////////////////////////////////
 
@@ -898,11 +905,11 @@ int _tmain(int argc, TCHAR *argv[]) {
 
     SpleeterProcessorResult *result = NULL;
     if (SpleeterProcessor_split(modelName, audioDataSourceStereo, &result) != 0) {
-        _ftprintf(stderr, _T("Error: Spleeter processor failed. Use --debug to get more information.\n"));
+        MSG_ERROR(_T("Spleeter processor failed. Use --debug to get more information.\n"));
         return EXIT_FAILURE;
     }
     if (result == NULL) {
-        _ftprintf(stderr, _T("Error: Spleeter processor returns no result. Use --debug to get more information.\n"));
+        MSG_ERROR(_T("Spleeter processor returns no result. Use --debug to get more information.\n"));
         return EXIT_FAILURE;
     }
 
@@ -924,7 +931,7 @@ int _tmain(int argc, TCHAR *argv[]) {
 
             if (!AudioFile_writeAll(outputFilePath, &outputAudioFileFormat, &spleeterSampleType,
                     (void *)track->audioDataSource->sampleValues, track->audioDataSource->sampleCountPerChannel)) {
-                _ftprintf(stderr, _T("Error: Failed to write output file \"%s\".\n"), outputFilePath);
+                MSG_ERROR(_T("Failed to write output file \"%s\".\n"), outputFilePath);
                 return EXIT_FAILURE;
             }
 
@@ -941,7 +948,7 @@ int _tmain(int argc, TCHAR *argv[]) {
 
                 SpleeterProcessorResultTrack *track = SpleeterProcessorResult_getTrack(result, trackItem->trackName);
                 if (track == NULL) {
-                    _ftprintf(stderr, _T("Error: Track \"%s\" does not exist.\n"), trackItem->trackName);
+                    MSG_ERROR(_T("Track \"%s\" does not exist.\n"), trackItem->trackName);
                     return EXIT_FAILURE;
                 }
 
@@ -957,7 +964,7 @@ int _tmain(int argc, TCHAR *argv[]) {
 
                 if (!AudioFile_writeAll(outputFilePath, &outputAudioFileFormat, &spleeterSampleType,
                         (void *)track->audioDataSource->sampleValues, track->audioDataSource->sampleCountPerChannel)) {
-                    _ftprintf(stderr, _T("Error: Failed to write output file \"%s\".\n"), outputFilePath);
+                    MSG_ERROR(_T("Failed to write output file \"%s\".\n"), outputFilePath);
                     return EXIT_FAILURE;
                 }
 
@@ -985,7 +992,7 @@ int _tmain(int argc, TCHAR *argv[]) {
                     } else {
                         SpleeterProcessorResultTrack *sourceTrack = SpleeterProcessorResult_getTrack(result, sourceTrackItem->trackName);
                         if (sourceTrack == NULL) {
-                            _ftprintf(stderr, _T("Error: Track \"%s\" does not exist.\n"), sourceTrackItem->trackName);
+                            MSG_ERROR(_T("Track \"%s\" does not exist.\n"), sourceTrackItem->trackName);
                             return EXIT_FAILURE;
                         }
 
@@ -1005,7 +1012,7 @@ int _tmain(int argc, TCHAR *argv[]) {
 
                 if (!AudioFile_writeAll(outputFilePath, &outputAudioFileFormat, &spleeterSampleType,
                         (void *)audioDataSourceComputed->sampleValues, audioDataSourceComputed->sampleCountPerChannel)) {
-                    _ftprintf(stderr, _T("Error: Failed to write output file \"%s\".\n"), outputFilePath);
+                    MSG_ERROR(_T("Failed to write output file \"%s\".\n"), outputFilePath);
                     return EXIT_FAILURE;
                 }
 
@@ -1018,8 +1025,8 @@ int _tmain(int argc, TCHAR *argv[]) {
 
     SpleeterProcessorResult_free(&result);
 
-    _tprintf(_T("\n"));
-    _tprintf(_T("Completed.\n"));
+    MSG_INFO(_T("\n"));
+    MSG_INFO(_T("Completed.\n"));
 
     return EXIT_SUCCESS;
 }
