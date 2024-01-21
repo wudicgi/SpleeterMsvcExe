@@ -30,6 +30,7 @@
 #include <locale.h>
 #include <io.h>
 #include <Shlwapi.h>
+#include <intrin.h>
 #include "../version.h"
 #include "getopt.h"
 #include "Common.h"
@@ -38,6 +39,10 @@
 
 #define MSG_INFO(fmt, ...)     do {     \
     _tprintf(fmt, __VA_ARGS__);         \
+} while (0)
+
+#define MSG_WARNING(fmt, ...)     do {                      \
+    _ftprintf(stderr, _T("\nWarning: ") fmt, __VA_ARGS__);  \
 } while (0)
 
 #define MSG_ERROR(fmt, ...)     do {                        \
@@ -106,6 +111,97 @@ static void _displayHelp(int argc, TCHAR *argv[]) {
  */
 static void _displayVersion(void) {
     MSG_INFO(_T("%s\n"), _T(PROGRAM_VERSION));
+}
+
+/**
+ * 检查 CPU 是否支持 AVX 和 AVX2
+ *
+ * 代码来自 tensorflow 项目中的 tensorflow/core/platform/cpu_info.cc
+ */
+static bool _checkCpuFeatures(void) {
+    // AVX
+    {
+        // To get general information and extended features we send eax = 1 and
+        // ecx = 0 to cpuid.  The response is returned in eax, ebx, ecx and edx.
+        // (See Intel 64 and IA-32 Architectures Software Developer's Manual
+        // Volume 2A: Instruction Set Reference, A-M CPUID).
+        int cpu_info[4] = { 0 };
+        __cpuidex(cpu_info, 1, 0);
+        uint32_t ecx = cpu_info[2];
+
+        const uint64_t xcr0_xmm_mask = 0x2;
+        const uint64_t xcr0_ymm_mask = 0x4;
+
+        const uint64_t xcr0_avx_mask = xcr0_xmm_mask | xcr0_ymm_mask;
+
+        const bool have_avx =
+            // Does the OS support XGETBV instruction use by applications?
+            ((ecx >> 27) & 0x1) &&
+            // Does the OS save/restore XMM and YMM state?
+            ((_xgetbv(0) & xcr0_avx_mask) == xcr0_avx_mask) &&
+            // Is AVX supported in hardware?
+            ((ecx >> 28) & 0x1);
+
+        if (!have_avx) {
+            MSG_ERROR(_T("The current processor lacks AVX support, the program will exit.\n"));
+
+            return false;
+        }
+    }
+
+    // AVX2
+    {
+        // Get standard level 7 structured extension features (issue CPUID with
+        // eax = 7 and ecx= 0), which is required to check for AVX2 support as
+        // well as other Haswell (and beyond) features.  (See Intel 64 and IA-32
+        // Architectures Software Developer's Manual Volume 2A: Instruction Set
+        // Reference, A-M CPUID).
+        int cpu_info[4] = { 0 };
+        __cpuidex(cpu_info, 7, 0);
+        uint32_t ebx = cpu_info[1];
+
+        bool have_avx2 = ((ebx >> 5) & 0x1);
+
+        if (!have_avx2) {
+            MSG_ERROR(_T("The current processor lacks AVX2 support, the program will exit.\n"));
+
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
+ * 检查 tensorflow 的 DLL 是否可被成功加载
+ */
+static bool _checkDllLoading(void) {
+    HMODULE dllHandle = LoadLibrary(_T("tensorflow.dll"));
+    if (dllHandle == NULL) {
+        DWORD error = GetLastError();
+        PTCHAR errorMessageBuffer = NULL;
+        size_t errorMessageLength = FormatMessage((FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS),
+                NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&errorMessageBuffer, 0, NULL);
+        if (errorMessageLength != 0) {
+            MSG_ERROR(_T("Failed to load tensorflow.dll.\n")
+                    _T("Error code:    0x%08x\n")
+                    _T("Error message: %s\n"),
+                    error, errorMessageBuffer);
+        } else {
+            MSG_ERROR(_T("Failed to load tensorflow.dll. Error code: 0x%08x\n"),
+                    error);
+        }
+        if (errorMessageBuffer != NULL) {
+            LocalFree(errorMessageBuffer);
+        }
+
+        return false;
+    }
+
+    // DLL 稍后会被使用到，因此这里不释放
+    // FreeLibrary(dllHandle);
+
+    return true;
 }
 
 /**
@@ -617,6 +713,9 @@ int _tmain(int argc, TCHAR *argv[]) {
     static int helpFlag = 0;
     static int versionFlag = 0;
 
+    static int disableCpuCheckFlag = 0;
+    static int disableDllCheckFlag = 0;
+
     while (true) {
         static struct option longOptions[] = {
             // name,            has_arg,    flag,           val
@@ -629,6 +728,8 @@ int _tmain(int argc, TCHAR *argv[]) {
             {_T("debug"),       ARG_NONE,   &debugFlag,     1},
             {_T("help"),        ARG_NONE,   0,              _T('h')},
             {_T("version"),     ARG_NONE,   0,              _T('v')},
+            {_T("disable-cpu-check"),   ARG_NONE,   &disableCpuCheckFlag, 1},
+            {_T("disable-dll-check"),   ARG_NONE,   &disableDllCheckFlag, 1},
             {ARG_NULL,          ARG_NULL,   ARG_NULL,       ARG_NULL}
         };
 
@@ -771,6 +872,26 @@ int _tmain(int argc, TCHAR *argv[]) {
 
         MSG_ERROR(_T("Not specified the input file path.\n"));
         return EXIT_FAILURE;
+    }
+
+    ////////////////////////////////////////////////// 检查 CPU 特性和 DLL 加载 //////////////////////////////////////////////////
+
+    if (disableCpuCheckFlag) {
+        MSG_WARNING(_T("The CPU feature check has been disabled. If there is no AVX/AVX2 support,\n")
+                _T("the initialization loading of tensorflow.dll will fail and return error code 0xc0000142.\n"));
+    } else {
+        if (!_checkCpuFeatures()) {
+            return EXIT_FAILURE;
+        }
+    }
+
+    if (disableDllCheckFlag) {
+        MSG_WARNING(_T("The DLL loading check has been disabled. If the loading fails,\n")
+                _T("the program may quietly exit without displaying any error messages.\n"));
+    } else {
+        if (!_checkDllLoading()) {
+            return EXIT_FAILURE;
+        }
     }
 
     ////////////////////////////////////////////////// 检查命令行参数 //////////////////////////////////////////////////

@@ -67,6 +67,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <DelayLoadDLLs>tensorflow.dll</DelayLoadDLLs>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /y /d "$(ProjectDir)third_party\ffmpeg-win64\dll\*.dll" "$(TargetDir)"
@@ -90,6 +91,7 @@ xcopy /y /d "$(ProjectDir)third_party\tensorflow-cpu-x64\dll\*.dll" "$(TargetDir
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <DelayLoadDLLs>tensorflow.dll</DelayLoadDLLs>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /y /d "$(ProjectDir)third_party\ffmpeg-win64\dll\*.dll" "$(TargetDir)"
