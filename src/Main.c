@@ -34,6 +34,7 @@
 #include "../version.h"
 #include "getopt.h"
 #include "Common.h"
+#include "CrashReporter.h"
 #include "AudioFileReader.h"
 #include "SpleeterProcessor.h"
 
@@ -664,6 +665,8 @@ static bool _checkSpleeterModelTrackName(const SpleeterModelInfo *modelInfo, con
 }
 
 int _tmain(int argc, TCHAR *argv[]) {
+    CrashReporter_register();
+
     setlocale(LC_ALL, "");
 
     ////////////////////////////////////////////////// 获取命令行参数 //////////////////////////////////////////////////

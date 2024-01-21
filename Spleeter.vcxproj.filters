@@ -60,6 +60,9 @@
     <ClCompile Include="src\Debug.c">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\CrashReporter.c">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\AudioFile.h">
@@ -89,6 +92,9 @@
     <ClInclude Include="resource.h" />
     <ClInclude Include="version.h" />
     <ClInclude Include="src\Debug.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\CrashReporter.h">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
