@@ -46,19 +46,19 @@ AudioFileReader *AudioFileReader_open(const TCHAR *filename, const AudioSampleTy
 
     obj = MEMORY_ALLOC_STRUCT(AudioFileReader);
     if (obj == NULL) {
-        DEBUG_ERROR("allocating AudioFileReader struct failed\n");
+        MSG_ERROR(_T("allocating AudioFileReader struct failed\n"));
         goto err;
     }
 
     obj->filenameUtf8 = AudioFileCommon_getUtf8StringFromUnicodeString(filename);
     if (obj->filenameUtf8 == NULL) {
-        DEBUG_ERROR("converting filename to UTF-8 encoding failed\n");
+        MSG_ERROR(_T("converting filename to UTF-8 encoding failed\n"));
         goto err;
     }
 
     obj->outputSampleType = MEMORY_ALLOC_STRUCT(AudioSampleType);
     if (obj->outputSampleType == NULL) {
-        DEBUG_ERROR("allocating AudioSampleType struct failed\n");
+        MSG_ERROR(_T("allocating AudioSampleType struct failed\n"));
         goto err;
     }
     memcpy(obj->outputSampleType, outputSampleType, sizeof(AudioSampleType));
@@ -66,21 +66,21 @@ AudioFileReader *AudioFileReader_open(const TCHAR *filename, const AudioSampleTy
     // 分配一个空的 AVFormatContext
     obj->_inputFormatContext = avformat_alloc_context();
     if (obj->_inputFormatContext == NULL) {
-        DEBUG_ERROR("avformat_alloc_context() failed\n");
+        MSG_ERROR(_T("avformat_alloc_context() failed\n"));
         goto err;
     }
 
     // 打开输入文件，并读取头信息
     ret = avformat_open_input(&obj->_inputFormatContext, obj->filenameUtf8, NULL, NULL);
     if (ret < 0) {
-        DEBUG_ERROR("avformat_open_input() failed: %s\n", av_err2str(ret));
+        MSG_ERROR(_T("avformat_open_input() failed: ") _T(A_STR_FMT) _T("\n"), av_err2str(ret));
         goto err;
     }
 
     // 读取文件中的 packets, 获取 stream 信息
     ret = avformat_find_stream_info(obj->_inputFormatContext, NULL);
     if (ret < 0) {
-        DEBUG_ERROR("avformat_find_stream_info() failed: %s\n", av_err2str(ret));
+        MSG_ERROR(_T("avformat_find_stream_info() failed: ") _T(A_STR_FMT) _T("\n"), av_err2str(ret));
         goto err;
     }
 
@@ -90,7 +90,7 @@ AudioFileReader *AudioFileReader_open(const TCHAR *filename, const AudioSampleTy
 
     if (g_verboseMode) {
         av_dump_format(obj->_inputFormatContext, 0, obj->filenameUtf8, false);
-        DEBUG_INFO("Duration: %lf seconds\n", obj->durationInSeconds);
+        MSG_INFO(_T("Duration: %lf seconds\n"), obj->durationInSeconds);
     }
 
     // 查找第一个音频流
@@ -103,7 +103,7 @@ AudioFileReader *AudioFileReader_open(const TCHAR *filename, const AudioSampleTy
         audioStreamIndex++;
     }
     if (audioStreamIndex == obj->_inputFormatContext->nb_streams) {
-        DEBUG_ERROR("audio stream not found\n");
+        MSG_ERROR(_T("audio stream not found\n"));
         goto err;
     }
     obj->_audioStreamIndex = audioStreamIndex;
@@ -113,25 +113,25 @@ AudioFileReader *AudioFileReader_open(const TCHAR *filename, const AudioSampleTy
     // 获取音频流的 decoder
     obj->_audioDecoder = avcodec_find_decoder(stream->codecpar->codec_id);
     if (obj->_audioDecoder == NULL) {
-        DEBUG_ERROR("audio decoder not found\n");
+        MSG_ERROR(_T("audio decoder not found\n"));
         goto err;
     }
 
     // 创建解码器的 context
     obj->_audioDecoderContext = avcodec_alloc_context3(obj->_audioDecoder);
     if (obj->_audioDecoderContext == NULL) {
-        DEBUG_ERROR("audio decoder context alloc failed\n");
+        MSG_ERROR(_T("audio decoder context alloc failed\n"));
         goto err;
     }
 
     // 复制音频流的 codec 参数到解码器的 context
     ret = avcodec_parameters_to_context(obj->_audioDecoderContext, stream->codecpar);
     if (ret < 0) {
-        DEBUG_ERROR("failed to copy codec parameters to decoder context\n");
+        MSG_ERROR(_T("failed to copy codec parameters to decoder context\n"));
         goto err;
     }
     if (obj->_audioDecoderContext == NULL) {
-        DEBUG_ERROR("audio decoder context is null\n");
+        MSG_ERROR(_T("audio decoder context is null\n"));
         goto err;
     }
 
@@ -142,7 +142,7 @@ AudioFileReader *AudioFileReader_open(const TCHAR *filename, const AudioSampleTy
     // 用找到的 decoder 初始化 codec context
     ret = avcodec_open2(obj->_audioDecoderContext, obj->_audioDecoder, NULL);
     if (ret < 0) {
-        DEBUG_ERROR("avcodec_open2() failed: %s\n", av_err2str(ret));
+        MSG_ERROR(_T("avcodec_open2() failed: ") _T(A_STR_FMT) _T("\n"), av_err2str(ret));
         goto err;
     }
 
@@ -153,14 +153,14 @@ AudioFileReader *AudioFileReader_open(const TCHAR *filename, const AudioSampleTy
     } else if (outputSampleType->channelCount == 2) {
         outputChannelLayout = (AVChannelLayout)AV_CHANNEL_LAYOUT_STEREO;
     } else {
-        DEBUG_ERROR("wrong output channel count: %d\n", outputSampleType->channelCount);
+        MSG_ERROR(_T("wrong output channel count: %d\n"), outputSampleType->channelCount);
         goto err;
     }
 
     // 获取输出样本值格式
     enum AVSampleFormat outputSampleFormat = AudioFileCommon_getAvSampleFormat(obj->outputSampleType->sampleValueFormat);
     if (outputSampleFormat == AV_SAMPLE_FMT_NONE) {
-        DEBUG_ERROR("AudioFileCommon_getAvSampleFormat() failed\n");
+        MSG_ERROR(_T("AudioFileCommon_getAvSampleFormat() failed\n"));
         goto err;
     }
 
@@ -177,28 +177,28 @@ AudioFileReader *AudioFileReader_open(const TCHAR *filename, const AudioSampleTy
         NULL                                        // parent logging context, can be NULL
     );
     if (obj->_resamplerContext == NULL) {
-        DEBUG_ERROR("swr_alloc_set_opts2() failed\n");
+        MSG_ERROR(_T("swr_alloc_set_opts2() failed\n"));
         goto err;
     }
 
     // 初始化 libswresample 重采样器
     ret = swr_init(obj->_resamplerContext);
     if (ret < 0) {
-        DEBUG_ERROR("swr_init() failed: %s\n", av_err2str(ret));
+        MSG_ERROR(_T("swr_init() failed: ") _T(A_STR_FMT) _T("\n"), av_err2str(ret));
         goto err;
     }
 
     // 为输入流创建临时 packet
     obj->_tempPacket = av_packet_alloc();
     if (obj->_tempPacket == NULL) {
-        DEBUG_ERROR("av_packet_alloc() failed\n");
+        MSG_ERROR(_T("av_packet_alloc() failed\n"));
         goto err;
     }
 
     // 为 decoder 分配临时 frame
     obj->_tempFrame = av_frame_alloc();
     if (obj->_tempFrame == NULL) {
-        DEBUG_ERROR("av_frame_alloc() failed\n");
+        MSG_ERROR(_T("av_frame_alloc() failed\n"));
         goto err;
     }
 
@@ -234,7 +234,7 @@ int AudioFileReader_read(AudioFileReader *obj, void *destBuffer, int destBufferS
     // 将该 packet 提交给解码器
     ret = avcodec_send_packet(obj->_audioDecoderContext, obj->_tempPacket);
     if (ret < 0) {
-        DEBUG_ERROR("avcodec_send_packet() failed: %s\n", av_err2str(ret));
+        MSG_ERROR(_T("avcodec_send_packet() failed: ") _T(A_STR_FMT) _T("\n"), av_err2str(ret));
         return -1;
     }
 
@@ -245,7 +245,7 @@ int AudioFileReader_read(AudioFileReader *obj, void *destBuffer, int destBufferS
         // frame available, but there were no errors during decoding
         return 0;
     } else if (ret < 0) {
-        DEBUG_ERROR("avcodec_receive_frame() failed: %s\n", av_err2str(ret));
+        MSG_ERROR(_T("avcodec_receive_frame() failed: ") _T(A_STR_FMT) _T("\n"), av_err2str(ret));
         return -1;
     }
 
@@ -268,7 +268,7 @@ int AudioFileReader_read(AudioFileReader *obj, void *destBuffer, int destBufferS
 
         obj->_resamplerOutputBuffer = (uint8_t*)av_malloc(obj->_resamplerOutputBufferSize);
         if (obj->_resamplerOutputBuffer == NULL) {
-            DEBUG_ERROR("allocating resampler output buffer failed\n");
+            MSG_ERROR(_T("allocating resampler output buffer failed\n"));
             return -1;
         }
     }
@@ -278,7 +278,7 @@ int AudioFileReader_read(AudioFileReader *obj, void *destBuffer, int destBufferS
             &obj->_resamplerOutputBuffer, obj->_resamplerOutputBufferSampleCountPerChannel,
             (const uint8_t **)obj->_tempFrame->data, obj->_tempFrame->nb_samples);
     if (outputSampleCountPerChannel < 0) {
-        DEBUG_ERROR("swr_convert() failed\n");
+        MSG_ERROR(_T("swr_convert() failed\n"));
         return -1;
     }
 

@@ -25,13 +25,12 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include <stdlib.h>
-#include <tchar.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
 #include <Windows.h>
 #include <DbgHelp.h>
-#include "Debug.h"
+#include "Common.h"
 
 typedef BOOL(WINAPI *MiniDumpWriteDumpFunc)(
         HANDLE hProcess,
@@ -111,7 +110,7 @@ static LONG WINAPI _unhandledExceptionFilter(struct _EXCEPTION_POINTERS *excepti
 
 void CrashReporter_register(void) {
     if (_lastExceptionFilter != NULL) {
-        DEBUG_INFO("CrashReporter: is already registered\n");
+        MSG_DEBUG(_T("CrashReporter is already registered\n"));
     }
     SetErrorMode(SEM_FAILCRITICALERRORS);
     _lastExceptionFilter = SetUnhandledExceptionFilter(_unhandledExceptionFilter);

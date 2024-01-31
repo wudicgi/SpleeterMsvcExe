@@ -28,12 +28,41 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <tchar.h>
-#include "Debug.h"
 #include "Memory.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+extern bool g_verboseMode;
+
+extern bool g_debugMode;
+
+#ifdef _UNICODE
+#define A_STR_FMT    "%S"
+#define W_STR_FMT    "%s"
+#else
+#define A_STR_FMT    "%s"
+#define W_STR_FMT    "%S"
+#endif
+
+#define MSG_DEBUG(fmt, ...)     do {                        \
+    if (g_debugMode) {                                      \
+        _tprintf(_T("[ DEBUG ] ") fmt, __VA_ARGS__);        \
+    }                                                       \
+} while (0)
+
+#define MSG_INFO(fmt, ...)      do {                        \
+    _tprintf(fmt, __VA_ARGS__);                             \
+} while (0)
+
+#define MSG_WARNING(fmt, ...)   do {                        \
+    _ftprintf(stderr, _T("\nWarning: ") fmt, __VA_ARGS__);  \
+} while (0)
+
+#define MSG_ERROR(fmt, ...)     do {                        \
+    _ftprintf(stderr, _T("\nError: ") fmt, __VA_ARGS__);    \
+} while (0)
 
 /*
 In the Windows API (with some exceptions discussed in the following paragraphs), the maximum length for a path is MAX_PATH,

@@ -25,12 +25,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "Common.h"
+#include "Memory.h"
 
 void *Memory_alloc(size_t size) {
     void *ptr = malloc(size);
 
     if (ptr == NULL) {
-        fprintf(stderr, "Error: malloc() failed");
+        MSG_ERROR(_T("malloc() failed"));
         exit(EXIT_FAILURE);     // TODO
         return NULL;
     }
@@ -44,7 +46,7 @@ void *Memory_realloc(void *ptr, size_t newSize) {
     void *newPtr = realloc(ptr, newSize);
 
     if (newPtr == NULL) {
-        fprintf(stderr, "Error: realloc() failed");
+        MSG_ERROR(_T("realloc() failed"));
         exit(EXIT_FAILURE);     // TODO
         return NULL;
     }

@@ -25,7 +25,7 @@
 #ifndef _AUDIO_FILE_READER_H_
 #define _AUDIO_FILE_READER_H_
 
-#include <tchar.h>
+#include "Common.h"
 #include "libavformat/avformat.h"
 #include "libavcodec/avcodec.h"
 #include "libswresample/swresample.h"

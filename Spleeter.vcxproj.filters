@@ -57,9 +57,6 @@
     <ClCompile Include="third_party\getopt\getopt.c">
       <Filter>third_party\getopt</Filter>
     </ClCompile>
-    <ClCompile Include="src\Debug.c">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="src\CrashReporter.c">
       <Filter>src</Filter>
     </ClCompile>
@@ -91,9 +88,6 @@
     </ClInclude>
     <ClInclude Include="resource.h" />
     <ClInclude Include="version.h" />
-    <ClInclude Include="src\Debug.h">
-      <Filter>src</Filter>
-    </ClInclude>
     <ClInclude Include="src\CrashReporter.h">
       <Filter>src</Filter>
     </ClInclude>

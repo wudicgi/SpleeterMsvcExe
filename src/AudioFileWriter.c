@@ -43,7 +43,8 @@
 static void _logPacket(const AVFormatContext *formatContext, const AVPacket *packet) {
     AVRational *timeBase = &formatContext->streams[packet->stream_index]->time_base;
 
-    DEBUG_INFO("pts: %s (%s), dts: %s (%s), duration: %s (%s), stream_index: %d\n",
+    MSG_INFO(_T("pts: ") _T(A_STR_FMT) _T(" (") _T(A_STR_FMT) _T("), dts: ") _T(A_STR_FMT) _T(" (") _T(A_STR_FMT)
+            _T("), duration: ") _T(A_STR_FMT) _T(" (") _T(A_STR_FMT) _T("), stream_index: %d\n"),
         av_ts2str(packet->pts), av_ts2timestr(packet->pts, timeBase),
         av_ts2str(packet->dts), av_ts2timestr(packet->dts, timeBase),
         av_ts2str(packet->duration), av_ts2timestr(packet->duration, timeBase),
@@ -67,7 +68,7 @@ static int _writeFrame(AudioFileWriter *obj, AVFrame *frame, AVPacket *packet) {
     // 将该帧提供给编码器
     ret = avcodec_send_frame(obj->_audioEncoderContext, frame);
     if (ret < 0) {
-        DEBUG_ERROR("avcodec_send_frame() failed: %s\n", av_err2str(ret));
+        MSG_ERROR(_T("avcodec_send_frame() failed: ") _T(A_STR_FMT) _T("\n"), av_err2str(ret));
         return ret;
     }
 
@@ -78,7 +79,7 @@ static int _writeFrame(AudioFileWriter *obj, AVFrame *frame, AVPacket *packet) {
             // AVERROR_EOF:       the encoder has been fully flushed, and there will be no more output packets
             break;
         } else if (ret < 0) {
-            DEBUG_ERROR("avcodec_receive_packet() failed: %s\n", av_err2str(ret));
+            MSG_ERROR(_T("avcodec_receive_packet() failed: ") _T(A_STR_FMT) _T("\n"), av_err2str(ret));
             return ret;
         }
 
@@ -93,7 +94,7 @@ static int _writeFrame(AudioFileWriter *obj, AVFrame *frame, AVPacket *packet) {
         // its contents and resets pkt), so that no unreferencing is necessary.
         // This would be different if one used av_write_frame().
         if (ret < 0) {
-            DEBUG_ERROR("av_interleaved_write_frame() failed: %s\n", av_err2str(ret));
+            MSG_ERROR(_T("av_interleaved_write_frame() failed: ") _T(A_STR_FMT) _T("\n"), av_err2str(ret));
             return ret;
         }
     }
@@ -117,32 +118,32 @@ static bool _addAudioStream(AudioFileWriter *obj) {
     // 从输出容器格式中获取音频的 Codec ID
     enum AVCodecID audioCodecId = obj->_outputFormatContext->oformat->audio_codec;
     if (audioCodecId == AV_CODEC_ID_NONE) {
-        DEBUG_ERROR("audio codec not found\n");
+        MSG_ERROR(_T("audio codec not found\n"));
         return false;
     }
 
     // 查找可用的音频编码器
     obj->_audioEncoder = avcodec_find_encoder(audioCodecId);
     if (obj->_audioEncoder == NULL) {
-        DEBUG_ERROR("cannot find encoder for '%s'\n", avcodec_get_name(audioCodecId));
+        MSG_ERROR(_T("cannot find encoder for '") _T(A_STR_FMT) _T("'\n"), avcodec_get_name(audioCodecId));
         return false;
     }
     if (obj->_audioEncoder->type != AVMEDIA_TYPE_AUDIO) {
-        DEBUG_ERROR("found audio encoder is not the type of AVMEDIA_TYPE_AUDIO\n");
+        MSG_ERROR(_T("found audio encoder is not the type of AVMEDIA_TYPE_AUDIO\n"));
         return false;
     }
 
     // 为编码器创建临时 packet
     obj->_tempPacket = av_packet_alloc();
     if (obj->_tempPacket == NULL) {
-        DEBUG_ERROR("av_packet_alloc() failed\n");
+        MSG_ERROR(_T("av_packet_alloc() failed\n"));
         return false;
     }
 
     // 添加一个新的音频流
     obj->_audioStream = avformat_new_stream(obj->_outputFormatContext, NULL);
     if (obj->_audioStream == NULL) {
-        DEBUG_ERROR("avformat_new_stream() failed\n");
+        MSG_ERROR(_T("avformat_new_stream() failed\n"));
         return false;
     }
     obj->_audioStream->id = obj->_outputFormatContext->nb_streams - 1;
@@ -150,7 +151,7 @@ static bool _addAudioStream(AudioFileWriter *obj) {
     // 为音频编码器分配一个 AVCodecContext
     obj->_audioEncoderContext = avcodec_alloc_context3(obj->_audioEncoder);
     if (obj->_audioEncoderContext == NULL) {
-        DEBUG_ERROR("avcodec_alloc_context3() failed\n");
+        MSG_ERROR(_T("avcodec_alloc_context3() failed\n"));
         return false;
     }
 
@@ -165,7 +166,7 @@ static bool _addAudioStream(AudioFileWriter *obj) {
     } else if (obj->inputSampleType->channelCount == 2) {
         channelLayout = (AVChannelLayout)AV_CHANNEL_LAYOUT_STEREO;
     } else {
-        DEBUG_ERROR("wrong channel count: %d\n", obj->inputSampleType->channelCount);
+        MSG_ERROR(_T("wrong channel count: %d\n"), obj->inputSampleType->channelCount);
         return false;
     }
 
@@ -239,7 +240,7 @@ static bool _allocAudioFrame(AVFrame **destFramePtr, enum AVSampleFormat sampleF
         int sampleRate, const AVChannelLayout *channelLayout, int frameSampleCountPerChannel) {
     AVFrame *frame = av_frame_alloc();
     if (frame == NULL) {
-        DEBUG_ERROR("av_frame_alloc() failed\n");
+        MSG_ERROR(_T("av_frame_alloc() failed\n"));
         return false;
     }
 
@@ -251,7 +252,7 @@ static bool _allocAudioFrame(AVFrame **destFramePtr, enum AVSampleFormat sampleF
     if (frameSampleCountPerChannel != 0) {
         int ret = av_frame_get_buffer(frame, 0);
         if (ret < 0) {
-            DEBUG_ERROR("av_frame_get_buffer() failed: %s\n", av_err2str(ret));
+            MSG_ERROR(_T("av_frame_get_buffer() failed: ") _T(A_STR_FMT) _T("\n"), av_err2str(ret));
             return false;
         }
     }
@@ -280,7 +281,7 @@ static bool _openAudio(AudioFileWriter *obj, AVDictionary *opt_arg) {
     ret = avcodec_open2(encoderContext, obj->_audioEncoder, &opt);
     av_dict_free(&opt);
     if (ret < 0) {
-        DEBUG_ERROR("avcodec_open2() failed: %s\n", av_err2str(ret));
+        MSG_ERROR(_T("avcodec_open2() failed: ") _T(A_STR_FMT) _T("\n"), av_err2str(ret));
         return false;
     }
 
@@ -311,14 +312,14 @@ static bool _openAudio(AudioFileWriter *obj, AVDictionary *opt_arg) {
     // 复制音频流的参数
     ret = avcodec_parameters_from_context(obj->_audioStream->codecpar, encoderContext);
     if (ret < 0) {
-        DEBUG_ERROR("avcodec_parameters_from_context() failed: %s\n", av_err2str(ret));
+        MSG_ERROR(_T("avcodec_parameters_from_context() failed: ") _T(A_STR_FMT) _T("\n"), av_err2str(ret));
         return false;
     }
 
     // 获取输入样本值格式
     enum AVSampleFormat inputSampleFormat = AudioFileCommon_getAvSampleFormat(obj->inputSampleType->sampleValueFormat);
     if (inputSampleFormat == AV_SAMPLE_FMT_NONE) {
-        DEBUG_ERROR("AudioFileCommon_getAvSampleFormat() failed\n");
+        MSG_ERROR(_T("AudioFileCommon_getAvSampleFormat() failed\n"));
         return false;
     }
 
@@ -336,18 +337,18 @@ static bool _openAudio(AudioFileWriter *obj, AVDictionary *opt_arg) {
         NULL                            // parent logging context, can be NULL
     );
     if (ret < 0) {
-        DEBUG_ERROR("swr_alloc_set_opts2() failed: %s\n", av_err2str(ret));
+        MSG_ERROR(_T("swr_alloc_set_opts2() failed: ") _T(A_STR_FMT) _T("\n"), av_err2str(ret));
         return false;
     }
     if (obj->_resamplerContext == NULL) {
-        DEBUG_ERROR("swr_alloc_set_opts2() failed\n");
+        MSG_ERROR(_T("swr_alloc_set_opts2() failed\n"));
         return false;
     }
 
     // 初始化 libswresample 重采样器
     ret = swr_init(obj->_resamplerContext);
     if (ret < 0) {
-        DEBUG_ERROR("swr_init() failed: %s\n", av_err2str(ret));
+        MSG_ERROR(_T("swr_init() failed: ") _T(A_STR_FMT) _T("\n"), av_err2str(ret));
         return false;
     }
 
@@ -394,7 +395,7 @@ static int _writeBufferFrame(AudioFileWriter *obj) {
         obj->_bufferFrame->nb_samples               // [in]
     );
     if (ret < 0) {
-        DEBUG_ERROR("swr_convert() failed\n");
+        MSG_ERROR(_T("swr_convert() failed\n"));
         return ret;
     }
 
@@ -407,7 +408,7 @@ static int _writeBufferFrame(AudioFileWriter *obj) {
 
     ret = _writeFrame(obj, obj->_bufferFrameResampled, obj->_tempPacket);
     if (ret < 0) {
-        DEBUG_ERROR("_writeFrame() failed\n");
+        MSG_ERROR(_T("_writeFrame() failed\n"));
         return ret;
     }
 
@@ -426,26 +427,26 @@ AudioFileWriter *AudioFileWriter_open(const TCHAR *filename,
 
     obj = MEMORY_ALLOC_STRUCT(AudioFileWriter);
     if (obj == NULL) {
-        DEBUG_ERROR("allocating AudioFileWriter struct failed\n");
+        MSG_ERROR(_T("allocating AudioFileWriter struct failed\n"));
         goto err;
     }
 
     obj->filenameUtf8 = AudioFileCommon_getUtf8StringFromUnicodeString(filename);
     if (obj->filenameUtf8 == NULL) {
-        DEBUG_ERROR("converting filename to UTF-8 encoding failed\n");
+        MSG_ERROR(_T("converting filename to UTF-8 encoding failed\n"));
         goto err;
     }
 
     obj->fileFormat = MEMORY_ALLOC_STRUCT(AudioFileFormat);
     if (obj->fileFormat == NULL) {
-        DEBUG_ERROR("allocating AudioFileFormat struct failed\n");
+        MSG_ERROR(_T("allocating AudioFileFormat struct failed\n"));
         goto err;
     }
     memcpy(obj->fileFormat, fileFormat, sizeof(AudioFileFormat));
 
     obj->inputSampleType = MEMORY_ALLOC_STRUCT(AudioSampleType);
     if (obj->inputSampleType == NULL) {
-        DEBUG_ERROR("allocating AudioSampleType struct failed\n");
+        MSG_ERROR(_T("allocating AudioSampleType struct failed\n"));
         goto err;
     }
     memcpy(obj->inputSampleType, inputSampleType, sizeof(AudioSampleType));
@@ -454,29 +455,29 @@ AudioFileWriter *AudioFileWriter_open(const TCHAR *filename,
     ret = avformat_alloc_output_context2(&obj->_outputFormatContext,
             NULL, obj->fileFormat->formatName, obj->filenameUtf8);
     if (ret < 0) {
-        DEBUG_ERROR("avformat_alloc_output_context2() failed: %s\n", av_err2str(ret));
+        MSG_ERROR(_T("avformat_alloc_output_context2() failed: ") _T(A_STR_FMT) _T("\n"), av_err2str(ret));
         goto err;
     }
     if (obj->_outputFormatContext == NULL) {
-        DEBUG_ERROR("avformat_alloc_output_context2() failed, ctx is null\n");
+        MSG_ERROR(_T("avformat_alloc_output_context2() failed, ctx is null\n"));
         goto err;
     }
 
     // 检查输出容器格式的 flags 中的 AVFMT_NOFILE 标记位 (应为 0)
     if ((obj->_outputFormatContext->oformat->flags & AVFMT_NOFILE) != 0) {
-        DEBUG_ERROR("specified format has AVFMT_NOFILE flag\n");
+        MSG_ERROR(_T("specified format has AVFMT_NOFILE flag\n"));
         goto err;
     }
 
     // 添加一个音频流 (使用格式默认的编码器)
     if (!_addAudioStream(obj)) {
-        DEBUG_ERROR("_addAudioStream() failed\n");
+        MSG_ERROR(_T("_addAudioStream() failed\n"));
         goto err;
     }
 
     // 初始化音频编码器，并分配必要的缓冲区
     if (!_openAudio(obj, opt)) {
-        DEBUG_ERROR("_openAudio() failed\n");
+        MSG_ERROR(_T("_openAudio() failed\n"));
         goto err;
     }
 
@@ -487,14 +488,14 @@ AudioFileWriter *AudioFileWriter_open(const TCHAR *filename,
     // 打开输出文件
     ret = avio_open(&obj->_outputFormatContext->pb, obj->filenameUtf8, AVIO_FLAG_WRITE);
     if (ret < 0) {
-        DEBUG_ERROR("avio_open() failed: %s\n", av_err2str(ret));
+        MSG_ERROR(_T("avio_open() failed: ") _T(A_STR_FMT) _T("\n"), av_err2str(ret));
         goto err;
     }
 
     // 写入头信息
     ret = avformat_write_header(obj->_outputFormatContext, &opt);
     if (ret < 0) {
-        DEBUG_ERROR("avformat_write_header() failed: %s\n", av_err2str(ret));
+        MSG_ERROR(_T("avformat_write_header() failed: ") _T(A_STR_FMT) _T("\n"), av_err2str(ret));
         goto err;
     }
     obj->_headerWritten = true;
@@ -512,7 +513,7 @@ err:
 int AudioFileWriter_write(AudioFileWriter *obj, void *sampleValues, int sampleCountPerChannel) {
     int sampleValueSize = AudioFileCommon_getSampleValueSize(obj->inputSampleType->sampleValueFormat);
     if (sampleValueSize == -1) {
-        DEBUG_ERROR("AudioFileCommon_getSampleValueSize() failed\n");
+        MSG_ERROR(_T("AudioFileCommon_getSampleValueSize() failed\n"));
         return 0;
     }
 
@@ -536,7 +537,7 @@ int AudioFileWriter_write(AudioFileWriter *obj, void *sampleValues, int sampleCo
         // 写入 buffer frame
         int ret = _writeBufferFrame(obj);
         if (ret < 0) {
-            DEBUG_ERROR("_writeBufferFrame() failed\n");
+            MSG_ERROR(_T("_writeBufferFrame() failed\n"));
             return totalWrittenSampleCountPerChannel;
         }
 
@@ -558,7 +559,7 @@ void AudioFileWriter_close(AudioFileWriter **objPtr) {
         // 可参看 avcodec_send_frame() 函数对 frame 参数为 NULL 时的说明
         int ret = _writeFrame(obj, NULL, obj->_tempPacket);
         if (ret < 0) {
-            DEBUG_ERROR("_writeFrame() failed: error occurred when try to flush packets\n");
+            MSG_ERROR(_T("_writeFrame() failed: error occurred when try to flush packets\n"));
         }
     }
 
@@ -566,7 +567,7 @@ void AudioFileWriter_close(AudioFileWriter **objPtr) {
     if ((obj->_outputFormatContext != NULL) && obj->_headerWritten) {
         int ret = av_write_trailer(obj->_outputFormatContext);
         if (ret < 0) {
-            DEBUG_ERROR("av_write_trailer() failed: %s\n", av_err2str(ret));
+            MSG_ERROR(_T("av_write_trailer() failed: ") _T(A_STR_FMT) _T("\n"), av_err2str(ret));
         }
     }
 
@@ -598,7 +599,7 @@ void AudioFileWriter_close(AudioFileWriter **objPtr) {
                 && (obj->_outputFormatContext->pb != NULL)) {
             int ret = avio_closep(&obj->_outputFormatContext->pb);
             if (ret < 0) {
-                DEBUG_ERROR("avio_closep() failed: %s\n", av_err2str(ret));
+                MSG_ERROR(_T("avio_closep() failed: ") _T(A_STR_FMT) _T("\n"), av_err2str(ret));
             }
         }
 

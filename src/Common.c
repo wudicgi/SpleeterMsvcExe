@@ -31,6 +31,10 @@
 #include <time.h>
 #include "Common.h"
 
+bool g_verboseMode = false;
+
+bool g_debugMode = false;
+
 static const double _MIN_CHANGE = 1.0;
 
 static void _processProgress(double basePercentage, double currentStagePercentage, int stageProgress, int stageTotal,

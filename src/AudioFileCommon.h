@@ -25,8 +25,6 @@
 #ifndef _AUDIO_FILE_COMMON_H_
 #define _AUDIO_FILE_COMMON_H_
 
-#include <tchar.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif

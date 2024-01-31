@@ -26,7 +26,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <tchar.h>
 #include <locale.h>
 #include <io.h>
 #include <Shlwapi.h>
@@ -37,18 +36,6 @@
 #include "CrashReporter.h"
 #include "AudioFileReader.h"
 #include "SpleeterProcessor.h"
-
-#define MSG_INFO(fmt, ...)     do {     \
-    _tprintf(fmt, __VA_ARGS__);         \
-} while (0)
-
-#define MSG_WARNING(fmt, ...)     do {                      \
-    _ftprintf(stderr, _T("\nWarning: ") fmt, __VA_ARGS__);  \
-} while (0)
-
-#define MSG_ERROR(fmt, ...)     do {                        \
-    _ftprintf(stderr, _T("\nError: ") fmt, __VA_ARGS__);    \
-} while (0)
 
 /**
  * 显示帮助文本
@@ -185,8 +172,8 @@ static bool _checkDllLoading(void) {
                 NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&errorMessageBuffer, 0, NULL);
         if (errorMessageLength != 0) {
             MSG_ERROR(_T("Failed to load tensorflow.dll.\n")
-                    _T("Error code:    0x%08x\n")
-                    _T("Error message: %s\n"),
+                      _T("Error code:    0x%08x\n")
+                      _T("Error message: %s\n"),
                     error, errorMessageBuffer);
         } else {
             MSG_ERROR(_T("Failed to load tensorflow.dll. Error code: 0x%08x\n"),
@@ -914,7 +901,7 @@ int _tmain(int argc, TCHAR *argv[]) {
     // 检查所指定的 modelName 是否存在
     const SpleeterModelInfo *modelInfo = SpleeterProcessor_getModelInfo(modelName);
     if (modelInfo == NULL) {
-        MSG_ERROR(_T("Unrecognized model name \"%s\".\n"), modelName);
+        MSG_ERROR(_T("Unrecognized model name \"%s\". The folder name must contain \"2stems\", \"4stems\" or \"5stems\".\n"), modelName);
         return EXIT_FAILURE;
     }
 
@@ -1029,11 +1016,9 @@ int _tmain(int argc, TCHAR *argv[]) {
 
     SpleeterProcessorResult *result = NULL;
     if (SpleeterProcessor_split(modelName, audioDataSourceStereo, &result) != 0) {
-        MSG_ERROR(_T("Spleeter processor failed. Use --debug to get more information.\n"));
         return EXIT_FAILURE;
     }
     if (result == NULL) {
-        MSG_ERROR(_T("Spleeter processor returns no result. Use --debug to get more information.\n"));
         return EXIT_FAILURE;
     }
 

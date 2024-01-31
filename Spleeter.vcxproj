@@ -106,7 +106,6 @@ xcopy /y /d "$(ProjectDir)third_party\tensorflow-cpu-x64\dll\*.dll" "$(TargetDir
     <ClCompile Include="src\AudioFileWriter.c" />
     <ClCompile Include="src\Common.c" />
     <ClCompile Include="src\CrashReporter.c" />
-    <ClCompile Include="src\Debug.c" />
     <ClCompile Include="src\Main.c" />
     <ClCompile Include="src\Memory.c" />
     <ClCompile Include="src\SpleeterProcessor.c" />
@@ -120,7 +119,6 @@ xcopy /y /d "$(ProjectDir)third_party\tensorflow-cpu-x64\dll\*.dll" "$(TargetDir
     <ClInclude Include="src\AudioFileWriter.h" />
     <ClInclude Include="src\Common.h" />
     <ClInclude Include="src\CrashReporter.h" />
-    <ClInclude Include="src\Debug.h" />
     <ClInclude Include="src\Memory.h" />
     <ClInclude Include="src\SpleeterProcessor.h" />
     <ClInclude Include="third_party\getopt\getopt.h" />

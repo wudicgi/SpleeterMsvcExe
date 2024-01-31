@@ -25,7 +25,7 @@
 #ifndef _AUDIO_FILE_H_
 #define _AUDIO_FILE_H_
 
-#include <tchar.h>
+#include "Common.h"
 #include "AudioFileReader.h"
 #include "AudioFileWriter.h"
 

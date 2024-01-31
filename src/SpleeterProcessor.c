@@ -63,31 +63,31 @@ static bool _getModelFolderPath(const TCHAR *modelName, char **out_modelFolderPa
     // 获取程序可执行文件的完整路径
     TCHAR programFolderPath[FILE_PATH_MAX_SIZE] = { 0 };
     if (GetModuleFileName(NULL, programFolderPath, FILE_PATH_MAX_SIZE) == 0) {
-        DEBUG_ERROR("GetModuleFileName() failed\n");
+        MSG_ERROR(_T("GetModuleFileName() failed\n"));
         return false;
     }
     programFolderPath[FILE_PATH_MAX_SIZE - 1] = _T('\0');       // 确保安全
 
     // 去除文件名部分，留下目录部分的完整路径
     if (!PathRemoveFileSpec(programFolderPath)) {
-        DEBUG_ERROR("PathRemoveFileSpec() failed\n");
+        MSG_ERROR(_T("PathRemoveFileSpec() failed\n"));
         return false;
     }
     programFolderPath[FILE_PATH_MAX_SIZE - 1] = _T('\0');
 
     TCHAR modelsFolderPath[FILE_PATH_MAX_SIZE] = { 0 };
     if (PathCombine(modelsFolderPath, programFolderPath, _T("models")) == NULL) {
-        DEBUG_ERROR("PathCombine() failed\n");
+        MSG_ERROR(_T("PathCombine() failed\n"));
         return false;
     }
     if (!PathFileExists(modelsFolderPath)) {
-        DEBUG_ERROR("Folder \"" TSTRING_FORMAT_SPECIFIER "\" does not exist\n", modelsFolderPath);
+        MSG_ERROR(_T("Folder \"%s\" does not exist\n"), modelsFolderPath);
         return false;
     }
 
     TCHAR modelFolderPath[FILE_PATH_MAX_SIZE] = { 0 };
     if (PathCombine(modelFolderPath, modelsFolderPath, modelName) == NULL) {
-        DEBUG_ERROR("PathCombine() failed\n");
+        MSG_ERROR(_T("PathCombine() failed\n"));
         return false;
     }
 
@@ -105,7 +105,7 @@ static bool _getModelFolderPath(const TCHAR *modelName, char **out_modelFolderPa
 
             memset(modelFolderPath, 0, sizeof(modelFolderPath));
             if (PathCombine(modelFolderPath, modelsFolderPath, modelFolderName) == NULL) {
-                DEBUG_ERROR("PathCombine() failed\n");
+                MSG_ERROR(_T("PathCombine() failed\n"));
                 return false;
             }
 
@@ -116,7 +116,7 @@ static bool _getModelFolderPath(const TCHAR *modelName, char **out_modelFolderPa
 
                 TCHAR savedModelFilePath[FILE_PATH_MAX_SIZE] = { 0 };
                 if (PathCombine(savedModelFilePath, modelFolderPath, savedModelFileName) == NULL) {
-                    DEBUG_ERROR("PathCombine() failed\n");
+                    MSG_ERROR(_T("PathCombine() failed\n"));
                     return false;
                 }
                 if (PathFileExists(savedModelFilePath)) {
@@ -125,13 +125,13 @@ static bool _getModelFolderPath(const TCHAR *modelName, char **out_modelFolderPa
 
                     return true;
                 } else {
-                    DEBUG_ERROR("SavedModel .pb file \"" TSTRING_FORMAT_SPECIFIER "\" does not exist\n", savedModelFilePath);
+                    MSG_ERROR(_T("SavedModel .pb file \"%s\" does not exist\n"), savedModelFilePath);
                 }
             } else {
-                DEBUG_ERROR("Folder \"" TSTRING_FORMAT_SPECIFIER "\" does not exist\n", modelFolderPath);
+                MSG_ERROR(_T("Folder \"%s\" does not exist\n"), modelFolderPath);
             }
         } else {
-            DEBUG_ERROR("Folder \"" TSTRING_FORMAT_SPECIFIER "\" does not exist\n", modelFolderPath);
+            MSG_ERROR(_T("Folder \"%s\" does not exist\n"), modelFolderPath);
         }
 
         return false;
@@ -197,32 +197,31 @@ int SpleeterProcessor_split(const TCHAR *modelName, AudioDataSource *audioDataSo
 
     const SpleeterModelInfo *modelInfo = SpleeterProcessor_getModelInfo(modelName);
     if (modelInfo == NULL) {
-        DEBUG_ERROR("SpleeterProcessor_getModelInfo() failed\n");
+        MSG_ERROR(_T("SpleeterProcessor_getModelInfo() failed\n"));
         goto clean_up;
     }
 
     if (!_getModelFolderPath(modelName, &modelFolderPath_utf8, &savedModelFileName_utf8)) {
-        DEBUG_ERROR("_getModelFolderPath() failed\n");
         goto clean_up;
     }
 
     if (audioDataSource->channelCount != SPLEETER_MODEL_AUDIO_CHANNEL_COUNT) {
-        DEBUG_ERROR("wrong channel count: %d\n", audioDataSource->channelCount);
+        MSG_ERROR(_T("wrong channel count: %d\n"), audioDataSource->channelCount);
         goto clean_up;
     }
 
     if (audioDataSource->sampleRate != SPLEETER_MODEL_AUDIO_SAMPLE_RATE) {
-        DEBUG_ERROR("wrong sample rate: %d\n", audioDataSource->sampleRate);
+        MSG_ERROR(_T("wrong sample rate: %d\n"), audioDataSource->sampleRate);
         goto clean_up;
     }
 
     if (audioDataSource->sampleValues == NULL) {
-        DEBUG_ERROR("audioDataSource->sampleValues is NULL\n");
+        MSG_ERROR(_T("audioDataSource->sampleValues is NULL\n"));
         goto clean_up;
     }
 
     if (audioDataSource->sampleCountPerChannel <= 0) {
-        DEBUG_ERROR("audioDataSource->sampleCountPerChannel is less than or equal to 0\n");
+        MSG_ERROR(_T("audioDataSource->sampleCountPerChannel is less than or equal to 0\n"));
         goto clean_up;
     }
 
@@ -259,25 +258,26 @@ int SpleeterProcessor_split(const TCHAR *modelName, AudioDataSource *audioDataSo
     // Notice: Due to the behaviour of MSVC CRT, the getenv() call in tensorflow.dll cannot get the latest environment variable value in debug version
     // which uses /MDd compile parameter. So when using debug version, the above log level setting may not take effect.
     // But the release version which uses /MD compile parameter does not have this problem.
-    DEBUG_INFO("set TF_CPP_MIN_LOG_LEVEL = %s\n", tfCppMinLogLevel);
+    MSG_DEBUG(_T("set TF_CPP_MIN_LOG_LEVEL = ") _T(A_STR_FMT) _T("\n"), tfCppMinLogLevel);
     _putenv_s("TF_CPP_MIN_LOG_LEVEL", tfCppMinLogLevel);
-    DEBUG_INFO("now TF_CPP_MIN_LOG_LEVEL = %s\n", getenv("TF_CPP_MIN_LOG_LEVEL"));
+    MSG_DEBUG(_T("now TF_CPP_MIN_LOG_LEVEL = ") _T(A_STR_FMT) _T("\n"), getenv("TF_CPP_MIN_LOG_LEVEL"));
 
     if (savedModelFileName_utf8 != NULL) {
         // Our custom added code in tensorflow library uses GetEnvironmentVariableA() to get the value of this environment variable,
         // so there is no problem like the above TF_CPP_MIN_LOG_LEVEL.
-        DEBUG_INFO("set TF_CPP_SAVED_MODEL_FILENAME_PB = %s\n", savedModelFileName_utf8);
+        MSG_DEBUG(_T("set TF_CPP_SAVED_MODEL_FILENAME_PB = ") _T(A_STR_FMT) _T("\n"), savedModelFileName_utf8);
         _putenv_s("TF_CPP_SAVED_MODEL_FILENAME_PB", savedModelFileName_utf8);   // "saved_model-测试.pb"
-        DEBUG_INFO("now TF_CPP_SAVED_MODEL_FILENAME_PB = %s\n", getenv("TF_CPP_SAVED_MODEL_FILENAME_PB"));
+        MSG_DEBUG(_T("now TF_CPP_SAVED_MODEL_FILENAME_PB = ") _T(A_STR_FMT) _T("\n"), getenv("TF_CPP_SAVED_MODEL_FILENAME_PB"));
     }
 
     const char *tensorFlowVersion = TF_Version();
-    DEBUG_INFO("TensorFlow C library version %s\n", tensorFlowVersion);
+    MSG_DEBUG(_T("TensorFlow C library version ") _T(A_STR_FMT) _T("\n"), tensorFlowVersion);
 
     if ((savedModelFileName_utf8 != NULL)
             && (strstr(tensorFlowVersion, "-mod") == NULL)) {
-        DEBUG_ERROR("The TensorFlow library loaded (%s) is not our mod version, not supporting change the filename of saved_model.pb.\n", tensorFlowVersion);
-        DEBUG_ERROR("Please execute the batch script \"extract_16kHz_22kHz_models_into_separated_folders.bat\" in \"models\" folder.\n");
+        MSG_ERROR(_T("The TensorFlow library loaded (") _T(A_STR_FMT) _T(") is not our mod version, not supporting change the filename of saved_model.pb.\n")
+                _T("Please execute the batch script \"extract_16kHz_22kHz_models_into_separated_folders.bat\" in \"models\" folder.\n"),
+            tensorFlowVersion);
         goto clean_up;
     }
 
@@ -302,7 +302,7 @@ int SpleeterProcessor_split(const TCHAR *modelName, AudioDataSource *audioDataSo
     );
 
     if (TF_GetCode(status) != TF_OK) {
-        DEBUG_ERROR("TF_LoadSessionFromSavedModel() failed: %s\n", TF_Message(status));
+        MSG_ERROR(_T("TF_LoadSessionFromSavedModel() failed: ") _T(A_STR_FMT) _T("\n"), TF_Message(status));
         goto clean_up;
     }
 
@@ -332,13 +332,11 @@ int SpleeterProcessor_split(const TCHAR *modelName, AudioDataSource *audioDataSo
         int regionWaveformOffset = currentOffset - extendLengthAtBegin;
         int regionWaveformLength = min((extendLengthAtBegin + regionUseLength + extendLengthAtEnd), (inputSampleCountPerChannel - regionWaveformOffset));
 
-#if defined(_DEBUG) && 0
-        DEBUG_INFO("Region: %3d, %3d; %3d, %3d\n",
+        MSG_DEBUG(_T("Region: %3d, %3d; %3d, %3d\n"),
                 (regionWaveformOffset / SPLEETER_MODEL_AUDIO_SAMPLE_RATE),
                 (regionWaveformLength / SPLEETER_MODEL_AUDIO_SAMPLE_RATE),
                 (regionUseStart / SPLEETER_MODEL_AUDIO_SAMPLE_RATE),
                 (regionUseLength / SPLEETER_MODEL_AUDIO_SAMPLE_RATE));
-#endif
 
         //////////////////////////////// Input ////////////////////////////////
 
@@ -347,8 +345,7 @@ int SpleeterProcessor_split(const TCHAR *modelName, AudioDataSource *audioDataSo
         inputs[0].oper = TF_GraphOperationByName(graph, "input_waveform");
         inputs[0].index = 0;
         if (inputs[0].oper == NULL) {
-            DEBUG_ERROR("TF_GraphOperationByName() failed\n");
-            fprintf(stderr, "Error: Cannot find input tensor by name \"%s\".\n", "input_waveform");
+            MSG_ERROR(_T("Cannot find input tensor by name \"input_waveform\".\n"));
             goto clean_up;
         }
 
@@ -373,8 +370,7 @@ int SpleeterProcessor_split(const TCHAR *modelName, AudioDataSource *audioDataSo
             outputs[i].oper = TF_GraphOperationByName(graph, modelInfo->outputNames[i]);
             outputs[i].index = 0;
             if (outputs[i].oper == NULL) {
-                DEBUG_ERROR("TF_GraphOperationByName() failed\n");
-                fprintf(stderr, "Error: Cannot find output tensor by name \"%s\".\n", modelInfo->outputNames[i]);
+                MSG_ERROR(_T("Cannot find output tensor by name \"") _T(A_STR_FMT) _T("\".\n"), modelInfo->outputNames[i]);
                 goto clean_up;
             }
         }
@@ -397,7 +393,7 @@ int SpleeterProcessor_split(const TCHAR *modelName, AudioDataSource *audioDataSo
         );
 
         if (TF_GetCode(status) != TF_OK) {
-            DEBUG_ERROR("TF_SessionRun() failed: %s\n", TF_Message(status));
+            MSG_ERROR(_T("TF_SessionRun() failed: ") _T(A_STR_FMT) _T("\n"), TF_Message(status));
             goto clean_up;
         }
 
@@ -431,12 +427,12 @@ clean_up:
     if (session != NULL) {
         TF_CloseSession(session, status);
         if (TF_GetCode(status) != TF_OK) {
-            DEBUG_ERROR("TF_CloseSession() failed: %s\n", TF_Message(status));
+            MSG_ERROR(_T("TF_CloseSession() failed: ") _T(A_STR_FMT) _T("\n"), TF_Message(status));
         }
 
         TF_DeleteSession(session, status);
         if (TF_GetCode(status) != TF_OK) {
-            DEBUG_ERROR("TF_DeleteSession() failed: %s\n", TF_Message(status));
+            MSG_ERROR(_T("TF_DeleteSession() failed: ") _T(A_STR_FMT) _T("\n"), TF_Message(status));
         }
     }
 
