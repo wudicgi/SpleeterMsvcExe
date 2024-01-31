@@ -48,8 +48,8 @@ static void _displayHelp(int argc, TCHAR *argv[]) {
     MSG_INFO(_T("\n"));
 
     MSG_INFO(_T("Options:\n"));
-    MSG_INFO(_T("    -m, --model         Spleeter model name, i.e. the folder name in models folder\n"));
-    MSG_INFO(_T("                        (2stems, 4stems, 5stems-22khz, ..., default: 2stems)\n"));
+    MSG_INFO(_T("    -m, --model         Spleeter model name (i.e. the folder name in models folder)\n"));
+    MSG_INFO(_T("                            2stems, 4stems, 5stems-22khz, ..., default is 2stems\n"));
     MSG_INFO(_T("    -o, --output        Output file path format\n"));
     MSG_INFO(_T("                        Default is empty, which is equivalent to $(DirPath)\\$(BaseName).$(TrackName).$(Ext)\n"));
     MSG_INFO(_T("                        Supported variable names and example values:\n"));
@@ -59,8 +59,8 @@ static void _displayHelp(int argc, TCHAR *argv[]) {
     MSG_INFO(_T("                            $(BaseName)                 test\n"));
     MSG_INFO(_T("                            $(Ext)                      mp3\n"));
     MSG_INFO(_T("                            $(TrackName)                vocals,drums,bass,...\n"));
-    MSG_INFO(_T("    -b, --bitrate       Output file bitrate\n"));
-    MSG_INFO(_T("                        (128k, 192000, 256k, ..., default: 256k)\n"));
+    MSG_INFO(_T("    -b, --bitrate       Output file bitrate (unused for lossless or constant quantizer encoding)\n"));
+    MSG_INFO(_T("                            128k, 192000, 256k, ..., default is 256k\n"));
     MSG_INFO(_T("    -t, --tracks        Output track list (comma separated track names)\n"));
     MSG_INFO(_T("                        Default value is empty to output all tracks\n"));
     MSG_INFO(_T("                        Available track names:\n"));
@@ -473,7 +473,7 @@ static bool _tryParseBitrate(int *parsedResultBitrate, const TCHAR *optionValue)
     }
 
     unsigned long parsedValue = _tcstoul(optionValueBuffer, NULL, 10);
-    if (parsedValue > 0) {
+    if (parsedValue >= 0) {
         *parsedResultBitrate = parsedValue * multiplier;
         return true;
     } else {
@@ -693,7 +693,7 @@ int _tmain(int argc, TCHAR *argv[]) {
     TCHAR outputFilePathFormat[FILE_PATH_MAX_SIZE] = { _T('\0') };
     TCHAR modelName[FILE_PATH_MAX_SIZE] = { _T('\0') };
 
-    int outputFileBitrate = 0;
+    int outputFileBitrate = -1;
 
     TrackList trackList = { 0 };
 
@@ -912,7 +912,7 @@ int _tmain(int argc, TCHAR *argv[]) {
     }
 
     // 如果未指定输出文件的 bitrate, 则使用默认值
-    if (outputFileBitrate <= 0) {
+    if (outputFileBitrate < 0) {
         outputFileBitrate = 256000;
     }
 
