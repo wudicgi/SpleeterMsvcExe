@@ -35,6 +35,7 @@ EXPORTS
     av_base64_decode
     av_base64_encode
     av_basename
+    av_bessel_i0
     av_blowfish_alloc
     av_blowfish_crypt
     av_blowfish_crypt_ecb
@@ -156,6 +157,8 @@ EXPORTS
     av_downmix_info_update_side_data
     av_dynamic_hdr_plus_alloc
     av_dynamic_hdr_plus_create_side_data
+    av_dynamic_hdr_plus_from_t35
+    av_dynamic_hdr_plus_to_t35
     av_dynamic_hdr_vivid_alloc
     av_dynamic_hdr_vivid_create_side_data
     av_dynarray2_add
@@ -171,6 +174,9 @@ EXPORTS
     av_encryption_init_info_free
     av_encryption_init_info_get_side_data
     av_escape
+    av_executor_alloc
+    av_executor_execute
+    av_executor_free
     av_expr_count_func
     av_expr_count_vars
     av_expr_eval
@@ -235,6 +241,7 @@ EXPORTS
     av_frame_new_side_data_from_buf
     av_frame_ref
     av_frame_remove_side_data
+    av_frame_replace
     av_frame_side_data_name
     av_frame_unref
     av_free
@@ -434,6 +441,7 @@ EXPORTS
     av_pix_fmt_swap_endianness
     av_pixelutils_get_sad_fn
     av_q2intfloat
+    av_random_bytes
     av_rc4_alloc
     av_rc4_crypt
     av_rc4_init
@@ -551,6 +559,8 @@ EXPORTS
     av_version_info
     av_video_enc_params_alloc
     av_video_enc_params_create_side_data
+    av_video_hint_alloc
+    av_video_hint_create_side_data
     av_vk_frame_alloc
     av_vkfmt_from_pixfmt
     av_vlog

@@ -2,9 +2,9 @@
 
 ## ffmpeg-win64
 
-- ffmpeg-n6.0-17-g8f61cbf1b9-win64-lgpl-shared-6.0.zip
-- Build time: 2023-04-20 12:43 (UTC)
-- Downloaded from: https://github.com/BtbN/FFmpeg-Builds/releases
+- ffmpeg-n6.1.1-win64-lgpl-shared-6.1.zip
+- Build time: 2023-12-31 12:55 (UTC)
+- Downloaded from: https://github.com/BtbN/FFmpeg-Builds/releases/tag/autobuild-2023-12-31-12-55
 
 ## tensorflow-cpu-x64
 
