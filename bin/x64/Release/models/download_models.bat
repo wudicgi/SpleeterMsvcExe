@@ -8,9 +8,9 @@ if exist "models-all.zip" (
     echo File models-all.zip is already existed
     echo.
 ) else (
-    echo URL: https://github.com/wudicgi/SpleeterMsvcExe/releases/download/models-v1.0/models-all.zip
+    echo URL: https://github.com/wudicgi/SpleeterMsvcExe/releases/download/v2.0/models-all.zip
     echo.
-    wget -O "models-all.zip" "https://github.com/wudicgi/SpleeterMsvcExe/releases/download/models-v1.0/models-all.zip"
+    wget -O "models-all.zip" "https://github.com/wudicgi/SpleeterMsvcExe/releases/download/v2.0/models-all.zip"
     if %ERRORLEVEL% neq 0 goto error_occurred
 )
 
